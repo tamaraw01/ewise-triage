@@ -270,7 +270,7 @@ function ResultCard({ data, onReset }: { data: Prediction; onReset: () => void }
           <p className="text-sm mt-1 mb-2">{auto ? cMeta.action : reason}</p>
           
           {auto && cMeta.hazard && (
-            <div className="flex gap-2 items-start bg-danger-dim text-danger p-2 rounded text-xs font-semibold">
+            <div className="flex gap-2 items-start bg-[var(--amber-dim)] border border-[var(--amber)] text-amber p-2 text-xs font-semibold">
               <IconWarn />
               <span>{cMeta.hazard}</span>
             </div>

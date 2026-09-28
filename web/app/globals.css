@@ -1,22 +1,14 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-void: var(--bg);
-  --color-iron: var(--surface);
-  --color-iron-hi: var(--surface-2);
-  --color-edge: var(--line);
-  --color-bone: var(--ink);
-  --color-bone-dim: var(--ink-2);
-  --color-amber: var(--copper);
-  --color-amber-dim: var(--copper-soft);
-  --color-ok: var(--ok);
-  --color-ok-dim: var(--ok-soft);
-  --color-warn: var(--warn);
-  --color-warn-dim: var(--warn-soft);
-  --color-danger: var(--danger);
-  --color-danger-dim: var(--danger-soft);
-  --color-pcb: var(--pcb);
-  --color-pcb-dim: var(--pcb-soft);
+  --color-void: var(--void);
+  --color-iron: var(--iron);
+  --color-iron-hi: var(--iron-hi);
+  --color-edge: var(--edge);
+  --color-bone: var(--bone);
+  --color-bone-dim: var(--bone-dim);
+  --color-amber: var(--amber);
+  --color-amber-dim: var(--amber-dim);
   --color-lane1: var(--lane1);
   --color-lane2: var(--lane2);
   --color-lane3: var(--lane3);
@@ -27,40 +19,34 @@
 
 :root {
   color-scheme: dark;
-  --bg: #0F1513; 
-  --surface: #161E1B; 
-  --surface-2: #1B2521; 
-  --line: #2B3833; 
-  --line-2: #222D29;
-  --ink: #E2EAE6; 
-  --ink-2: #AFBCB6; 
-  --ink-3: #83918B;
-  --copper: #E08C58; 
-  --copper-soft: #3A271C;
-  --pcb: #5CC196; 
-  --pcb-soft: #173327;
-  --ok: #5CC98A; 
-  --ok-soft: #163024;
-  --warn: #E3AE52; 
-  --warn-soft: #3A2D14;
-  --danger: #F0786C; 
-  --danger-soft: #3D1D1A;
-  --lane1: #E4675C; 
-  --lane2: #E08C58; 
-  --lane3: #4FB287; 
-  --laneM: #DDAA45;
-  --shadow: 0 1px 2px rgba(0,0,0,.3);
+  /* Palet Dark Industrial Murni: Void, Iron, Bone, Amber */
+  --void: #100e0b;
+  --iron: #1c1915;
+  --iron-hi: #262219;
+  --edge: #3a342a;
+  --bone: #e8e3d9;
+  --bone-dim: #a8a196;
+  --amber: #f0a030;
+  --amber-dim: rgba(240, 160, 48, 0.1);
+  
+  /* Khusus jalur pembuangan, beri variasi warna redup agar tidak tabrakan dengan amber utama */
+  --lane1: #c94f4f; 
+  --lane2: #cf8b46; 
+  --lane3: #589679; 
+  --laneM: #a8a196;
+  
+  --shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
 
 body {
-  background: var(--bg);
-  color: var(--ink);
+  background: var(--void);
+  color: var(--bone);
   margin: 0;
   padding: 0;
 }
 
 :focus-visible {
-  outline: 2px solid var(--copper);
+  outline: 2px solid var(--amber);
   outline-offset: 2px;
 }
 
@@ -69,11 +55,10 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Custom UI Components porting E-WISE AI */
+/* Custom UI Components porting E-WISE AI -> Industrialized */
 .panel {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  background: var(--iron);
+  border: 1px solid var(--edge);
   box-shadow: var(--shadow);
 }
 .panel-h {
@@ -92,27 +77,10 @@ body {
 .label {
   font-family: var(--font-plex-sans);
   font-weight: 600;
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: .09em;
   text-transform: uppercase;
-  color: var(--ink-3);
-}
-
-.drop {
-  border: 1.5px dashed var(--line);
-  border-radius: 8px;
-  background: var(--surface-2);
-  padding: 18px 14px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  transition: border-color .15s, background .15s;
-}
-.drop.over {
-  border-color: var(--copper);
-  background: var(--copper-soft);
+  color: var(--bone-dim);
 }
 
 /* Pipeline Steps */
@@ -127,9 +95,8 @@ body {
   padding-right: 8px;
 }
 .step .bar {
-  height: 4px;
-  border-radius: 2px;
-  background: var(--line-2);
+  height: 2px;
+  background: var(--edge);
   margin-bottom: 8px;
   overflow: hidden;
 }
@@ -137,31 +104,31 @@ body {
   display: block;
   height: 100%;
   width: 0;
-  background: var(--pcb);
+  background: var(--bone-dim);
   transition: width .25s linear;
 }
 .step.done .bar i, .step.run .bar i { width: 100%; }
-.step.run .bar i { background: var(--copper); }
+.step.run .bar i { background: var(--amber); }
 .step b {
   display: block;
   font-weight: 600;
-  font-size: 13.5px;
+  font-size: 12px;
   line-height: 1.2;
 }
 .step small {
   display: block;
-  color: var(--ink-3);
-  font-size: 12px;
+  color: var(--bone-dim);
+  font-size: 11px;
   line-height: 1.3;
   margin-top: 2px;
 }
 .step .n {
   font-family: var(--font-plex-mono);
-  font-size: 11px;
-  color: var(--ink-3);
+  font-size: 10px;
+  color: var(--bone-dim);
 }
-.step.done .n, .step.run .n { color: var(--pcb); }
-@media (max-width: 560px) { .step small { display: none; } .step b { font-size: 12px; } }
+.step.done .n, .step.run .n { color: var(--amber); }
+@media (max-width: 560px) { .step small { display: none; } .step b { font-size: 11px; } }
 
 /* Results */
 .res-main {
@@ -175,102 +142,67 @@ body {
   align-items: center;
   gap: 7px;
   padding: 4px 10px;
-  border-radius: 999px;
   font-weight: 700;
-  font-size: 12.5px;
+  font-size: 11px;
   letter-spacing: .08em;
   text-transform: uppercase;
   width: max-content;
   max-width: 100%;
+  border: 1px solid transparent;
 }
-.status.auto { background: var(--ok-soft); color: var(--ok); }
-.status.manual { background: var(--warn-soft); color: var(--warn); }
-.status.idle { background: var(--surface-2); color: var(--ink-3); }
+/* Hanya gunakan Amber dan Edge/Bone untuk status */
+.status.auto { background: var(--amber-dim); color: var(--amber); border-color: var(--amber); }
+.status.manual { background: var(--iron-hi); color: var(--bone); border-color: var(--edge); }
+.status.idle { background: var(--iron); color: var(--bone-dim); border-color: var(--edge); }
 
 .box {
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  border: 1px solid var(--edge);
   padding: 12px;
-  background: var(--surface-2);
+  background: var(--iron-hi);
   display: flex;
   flex-direction: column;
   gap: 8px;
   min-width: 0;
 }
+
+/* Margin Meter diperbaiki layoutnya */
 .meter {
   position: relative;
-  height: 10px;
-  border-radius: 5px;
-  background: var(--line-2);
+  height: 6px;
+  background: var(--edge);
   margin-top: 4px;
 }
 .meter .fill {
   position: absolute;
   left: 0; top: 0; bottom: 0;
-  border-radius: 5px;
   transition: width .3s;
 }
 .meter .tick {
   position: absolute;
-  top: -5px; bottom: -5px;
+  top: -4px; bottom: -4px;
   width: 2px;
-  background: var(--ink);
-  border-radius: 1px;
+  background: var(--bone);
 }
+.meter-scale {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-plex-mono);
+  font-size: 10px;
+  color: var(--bone-dim);
+  margin-top: 6px;
+}
+
 .lane {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-weight: 700;
-  font-size: 14px;
-}
-.lane i { width: 10px; height: 10px; border-radius: 2px; flex: none; }
-
-/* Dashboard Tables */
-.tbl-wrap { overflow-x: auto; }
-table { border-collapse: collapse; width: 100%; font-size: 13px; }
-th {
   font-weight: 600;
-  font-size: 11.5px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-  text-align: left;
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--line);
-  white-space: nowrap;
+  font-size: 13px;
+  font-family: var(--font-plex-mono);
 }
-td {
-  padding: 7px 10px;
-  border-bottom: 1px solid var(--line-2);
-  vertical-align: middle;
-  white-space: nowrap;
-}
-td.num, th.num { text-align: right; }
-tr:last-child td { border-bottom: 0; }
+.lane i { width: 8px; height: 8px; flex: none; }
 
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 1px 8px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-}
-.pill.auto { background: var(--ok-soft); color: var(--ok); }
-.pill.manual { background: var(--warn-soft); color: var(--warn); }
-.pill.reviewed { background: var(--pcb-soft); color: var(--pcb); }
-
-/* KPI */
-.kpi { padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
-.kpi .v { font-family: var(--font-plex-mono); font-size: 26px; font-weight: 500; line-height: 1.1; }
-.kpi .s { font-size: 12.5px; color: var(--ink-3); }
-.kpi.warn .v { color: var(--warn); } 
-.kpi.danger .v { color: var(--danger); } 
-.kpi.ok .v { color: var(--ok); }
-
-/* Animasi Sonar Radar (tetap dipertahankan) */
+/* Animasi Sonar Radar (tetap dipertahankan dengan palet Amber) */
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
@@ -283,7 +215,7 @@ tr:last-child td { border-bottom: 0; }
 }
 
 .sonar-sweep {
-  background: conic-gradient(from 0deg, transparent 0deg, transparent 270deg, rgba(224,140,88,0.1) 320deg, rgba(224,140,88,0.8) 360deg);
+  background: conic-gradient(from 0deg, transparent 0deg, transparent 270deg, rgba(240,160,48,0.1) 320deg, rgba(240,160,48,0.8) 360deg);
   border-radius: 50%;
   animation: spin 3s linear infinite;
 }
@@ -291,12 +223,11 @@ tr:last-child td { border-bottom: 0; }
 .sonar-ring {
   position: absolute;
   border-radius: 50%;
-  border: 1px solid rgba(224,140,88,0.2);
+  border: 1px solid rgba(240,160,48,0.2);
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
 }
 
-/* Motion Preference */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
