@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+/* Palet dari DESIGN.md: 2 inti + 1 aksen. Jalur penanganan dibedakan
+   tipografi/kode teks, bukan lima warna, agar amber tetap berarti. */
+:root {
+  --void: #100e0b;
+  --iron: #1c1915;
+  --iron-hi: #262219;
+  --edge: #3a342a;
+  --bone: #e8e3d9;
+  --bone-dim: #a8a196;
+  --amber: #f0a030;
+  --amber-ink: #100e0b;
+}
+
+@theme inline {
+  --color-void: var(--void);
+  --color-iron: var(--iron);
+  --color-iron-hi: var(--iron-hi);
+  --color-edge: var(--edge);
+  --color-bone: var(--bone);
+  --color-bone-dim: var(--bone-dim);
+  --color-amber: var(--amber);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
+}
+
+* {
+  min-width: 0;
+}
+
+html {
+  background: var(--void);
+}
+
+body {
+  background: var(--void);
+  color: var(--bone);
+  font-family: var(--font-plex-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Fokus terlihat di setiap kontrol (R-32). Tidak ada outline:none tanpa ganti. */
+:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Motif identitas: takik skala ukur. Panjang tidak rata, seperti jangka sorong.
+   Dipakai hanya di kepala bagian, batang margin, dan sumbu peta. */
+.tick-rule {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 12px;
+}
+
+.tick-rule i {
+  display: block;
+  width: 1px;
+  background: var(--edge);
+}
+
+.tick-rule i:nth-child(5n + 1) {
+  height: 12px;
+  background: var(--bone-dim);
+}
+
+.tick-rule i:nth-child(5n + 3) {
+  height: 7px;
+}
+
+.tick-rule i:not(:nth-child(5n + 1)):not(:nth-child(5n + 3)) {
+  height: 4px;
+}
+
+/* MOTION 1: transisi hanya melayani perubahan status. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.num {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}

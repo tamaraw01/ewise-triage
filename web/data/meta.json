@@ -1,0 +1,41 @@
+{
+  "backbone": "CLIP ViT-H/14 (laion2b_s32b_b79k)",
+  "embed_dim": 1024,
+  "classes": [
+    "Battery",
+    "Keyboard",
+    "Microwave",
+    "Mobile",
+    "Mouse",
+    "PCB",
+    "Player",
+    "Printer",
+    "Television",
+    "Washing Machine"
+  ],
+  "source_experiment": "EXP 14 \u2014 co-association ensemble (KMeans 9, Ward 9, GMM 14) -> K final 14",
+  "dataset_images_total": 3961,
+  "dataset_images_used": 2660,
+  "dataset_images_dropped": 1301,
+  "metrics_notebook": {
+    "accuracy": 0.8778,
+    "f1_macro": 0.845,
+    "f1_weighted": 0.8453,
+    "ari_zeroshot": 0.828,
+    "ari_cluster": 0.8518,
+    "silhouette_consensus": 0.7117,
+    "bootstrap_ari_mean": 0.9417,
+    "bootstrap_ari_std": 0.029
+  },
+  "inference_validation": {
+    "n_images": 2660,
+    "n_clusters": 14,
+    "loo_cluster_agreement": 0.9594,
+    "loo_label_accuracy": 0.8662,
+    "margin_mean": 0.1438,
+    "margin_p05": 0.0297,
+    "margin_p50": 0.137
+  },
+  "review_margin_threshold": 0.0297,
+  "scatter_points": 1400
+}

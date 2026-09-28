@@ -1,0 +1,402 @@
+[
+  {
+    "id": 0,
+    "label": "Keyboard",
+    "n_images": 277,
+    "sim_top1": 0.2502,
+    "label_top2": "Mobile",
+    "sim_top2": 0.163,
+    "margin": 0.0872,
+    "route": "BULK",
+    "handling": "Periferal: pemisahan plastik dan membran",
+    "purity": 0.8989,
+    "truth_mix": {
+      "Keyboard": 249,
+      "Player": 7,
+      "Microwave": 6,
+      "Battery": 6
+    },
+    "prompt_profile": {
+      "Battery": 0.1106,
+      "Keyboard": 0.2502,
+      "Microwave": 0.0908,
+      "Mobile": 0.163,
+      "Mouse": 0.1588,
+      "PCB": 0.1494,
+      "Player": 0.1182,
+      "Printer": 0.1326,
+      "Television": 0.1242,
+      "Washing Machine": 0.0856
+    }
+  },
+  {
+    "id": 1,
+    "label": "Mobile",
+    "n_images": 286,
+    "sim_top1": 0.2575,
+    "label_top2": "Battery",
+    "sim_top2": 0.1654,
+    "margin": 0.0921,
+    "route": "BOARD",
+    "handling": "Perangkat genggam: pembongkaran papan dan modul",
+    "purity": 0.993,
+    "truth_mix": {
+      "Mobile": 284,
+      "Keyboard": 1,
+      "Television": 1
+    },
+    "prompt_profile": {
+      "Battery": 0.1654,
+      "Keyboard": 0.1318,
+      "Microwave": 0.137,
+      "Mobile": 0.2575,
+      "Mouse": 0.1639,
+      "PCB": 0.1608,
+      "Player": 0.1182,
+      "Printer": 0.1231,
+      "Television": 0.1485,
+      "Washing Machine": 0.1119
+    }
+  },
+  {
+    "id": 2,
+    "label": "Washing Machine",
+    "n_images": 202,
+    "sim_top1": 0.262,
+    "label_top2": "Microwave",
+    "sim_top2": 0.1471,
+    "margin": 0.1149,
+    "route": "APPLIANCE",
+    "handling": "Peralatan rumah: rangka logam dan motor",
+    "purity": 0.995,
+    "truth_mix": {
+      "Washing Machine": 201,
+      "Microwave": 1
+    },
+    "prompt_profile": {
+      "Battery": 0.1003,
+      "Keyboard": 0.0773,
+      "Microwave": 0.1471,
+      "Mobile": 0.1443,
+      "Mouse": 0.0963,
+      "PCB": 0.1021,
+      "Player": 0.092,
+      "Printer": 0.1232,
+      "Television": 0.1388,
+      "Washing Machine": 0.262
+    }
+  },
+  {
+    "id": 3,
+    "label": "PCB",
+    "n_images": 232,
+    "sim_top1": 0.2802,
+    "label_top2": "Battery",
+    "sim_top2": 0.1955,
+    "margin": 0.0847,
+    "route": "BOARD",
+    "handling": "Papan sirkuit: jalur pemulihan komponen",
+    "purity": 0.9784,
+    "truth_mix": {
+      "PCB": 227,
+      "Microwave": 2,
+      "Player": 1,
+      "Printer": 1
+    },
+    "prompt_profile": {
+      "Battery": 0.1955,
+      "Keyboard": 0.169,
+      "Microwave": 0.1372,
+      "Mobile": 0.1794,
+      "Mouse": 0.1513,
+      "PCB": 0.2802,
+      "Player": 0.1092,
+      "Printer": 0.1287,
+      "Television": 0.145,
+      "Washing Machine": 0.1153
+    }
+  },
+  {
+    "id": 4,
+    "label": "Battery",
+    "n_images": 132,
+    "sim_top1": 0.2193,
+    "label_top2": "Mobile",
+    "sim_top2": 0.1549,
+    "margin": 0.0644,
+    "route": "HAZARD",
+    "handling": "Sel baterai: penanganan bahan berbahaya",
+    "purity": 1.0,
+    "truth_mix": {
+      "Battery": 132
+    },
+    "prompt_profile": {
+      "Battery": 0.2193,
+      "Keyboard": 0.1041,
+      "Microwave": 0.0538,
+      "Mobile": 0.1549,
+      "Mouse": 0.1059,
+      "PCB": 0.1341,
+      "Player": 0.0903,
+      "Printer": 0.0898,
+      "Television": 0.0741,
+      "Washing Machine": 0.0509
+    }
+  },
+  {
+    "id": 5,
+    "label": "Washing Machine",
+    "n_images": 93,
+    "sim_top1": 0.2337,
+    "label_top2": "Mobile",
+    "sim_top2": 0.1241,
+    "margin": 0.1096,
+    "route": "APPLIANCE",
+    "handling": "Peralatan rumah: rangka logam dan motor",
+    "purity": 1.0,
+    "truth_mix": {
+      "Washing Machine": 93
+    },
+    "prompt_profile": {
+      "Battery": 0.0898,
+      "Keyboard": 0.0513,
+      "Microwave": 0.1125,
+      "Mobile": 0.1241,
+      "Mouse": 0.0802,
+      "PCB": 0.0864,
+      "Player": 0.0717,
+      "Printer": 0.1149,
+      "Television": 0.1035,
+      "Washing Machine": 0.2337
+    }
+  },
+  {
+    "id": 6,
+    "label": "Microwave",
+    "n_images": 237,
+    "sim_top1": 0.2668,
+    "label_top2": "Television",
+    "sim_top2": 0.1573,
+    "margin": 0.1095,
+    "route": "APPLIANCE",
+    "handling": "Peralatan rumah: rangka logam dan trafo",
+    "purity": 0.9916,
+    "truth_mix": {
+      "Microwave": 235,
+      "Television": 2
+    },
+    "prompt_profile": {
+      "Battery": 0.0804,
+      "Keyboard": 0.0658,
+      "Microwave": 0.2668,
+      "Mobile": 0.1432,
+      "Mouse": 0.1065,
+      "PCB": 0.1158,
+      "Player": 0.1106,
+      "Printer": 0.1175,
+      "Television": 0.1573,
+      "Washing Machine": 0.1454
+    }
+  },
+  {
+    "id": 7,
+    "label": "Mouse",
+    "n_images": 266,
+    "sim_top1": 0.2574,
+    "label_top2": "Mobile",
+    "sim_top2": 0.203,
+    "margin": 0.0544,
+    "route": "BULK",
+    "handling": "Periferal: pemisahan plastik dan modul kecil",
+    "purity": 0.9812,
+    "truth_mix": {
+      "Mouse": 261,
+      "Player": 5
+    },
+    "prompt_profile": {
+      "Battery": 0.1422,
+      "Keyboard": 0.1841,
+      "Microwave": 0.1188,
+      "Mobile": 0.203,
+      "Mouse": 0.2574,
+      "PCB": 0.1703,
+      "Player": 0.1256,
+      "Printer": 0.1592,
+      "Television": 0.1319,
+      "Washing Machine": 0.101
+    }
+  },
+  {
+    "id": 8,
+    "label": "Television",
+    "n_images": 133,
+    "sim_top1": 0.2476,
+    "label_top2": "Mobile",
+    "sim_top2": 0.1483,
+    "margin": 0.0993,
+    "route": "DISPLAY",
+    "handling": "Panel tampilan: penanganan layar terpisah",
+    "purity": 0.985,
+    "truth_mix": {
+      "Television": 131,
+      "Microwave": 1,
+      "Player": 1
+    },
+    "prompt_profile": {
+      "Battery": 0.1002,
+      "Keyboard": 0.1081,
+      "Microwave": 0.1438,
+      "Mobile": 0.1483,
+      "Mouse": 0.131,
+      "PCB": 0.1338,
+      "Player": 0.1157,
+      "Printer": 0.1174,
+      "Television": 0.2476,
+      "Washing Machine": 0.1227
+    }
+  },
+  {
+    "id": 9,
+    "label": "Mobile",
+    "n_images": 31,
+    "sim_top1": 0.2284,
+    "label_top2": "Television",
+    "sim_top2": 0.2206,
+    "margin": 0.0078,
+    "route": "BOARD",
+    "handling": "Perangkat genggam: pembongkaran papan dan modul",
+    "purity": 0.2258,
+    "truth_mix": {
+      "Keyboard": 8,
+      "Mobile": 7,
+      "Mouse": 4,
+      "Microwave": 3
+    },
+    "prompt_profile": {
+      "Battery": 0.2098,
+      "Keyboard": 0.2198,
+      "Microwave": 0.1938,
+      "Mobile": 0.2284,
+      "Mouse": 0.2013,
+      "PCB": 0.2144,
+      "Player": 0.193,
+      "Printer": 0.1944,
+      "Television": 0.2206,
+      "Washing Machine": 0.1859
+    }
+  },
+  {
+    "id": 10,
+    "label": "Battery",
+    "n_images": 80,
+    "sim_top1": 0.2558,
+    "label_top2": "PCB",
+    "sim_top2": 0.1543,
+    "margin": 0.1015,
+    "route": "HAZARD",
+    "handling": "Sel baterai: penanganan bahan berbahaya",
+    "purity": 1.0,
+    "truth_mix": {
+      "Battery": 80
+    },
+    "prompt_profile": {
+      "Battery": 0.2558,
+      "Keyboard": 0.0796,
+      "Microwave": 0.0665,
+      "Mobile": 0.1533,
+      "Mouse": 0.1169,
+      "PCB": 0.1543,
+      "Player": 0.1043,
+      "Printer": 0.1123,
+      "Television": 0.0967,
+      "Washing Machine": 0.0897
+    }
+  },
+  {
+    "id": 11,
+    "label": "Mobile",
+    "n_images": 243,
+    "sim_top1": 0.1495,
+    "label_top2": "Printer",
+    "sim_top2": 0.1276,
+    "margin": 0.0219,
+    "route": "BOARD",
+    "handling": "Perangkat genggam: pembongkaran papan dan modul",
+    "purity": 0.0,
+    "truth_mix": {
+      "Player": 242,
+      "Microwave": 1
+    },
+    "prompt_profile": {
+      "Battery": 0.0978,
+      "Keyboard": 0.0742,
+      "Microwave": 0.1276,
+      "Mobile": 0.1495,
+      "Mouse": 0.1128,
+      "PCB": 0.1077,
+      "Player": 0.1153,
+      "Printer": 0.1276,
+      "Television": 0.1151,
+      "Washing Machine": 0.0936
+    }
+  },
+  {
+    "id": 12,
+    "label": "Television",
+    "n_images": 174,
+    "sim_top1": 0.2962,
+    "label_top2": "Microwave",
+    "sim_top2": 0.2115,
+    "margin": 0.0847,
+    "route": "DISPLAY",
+    "handling": "Panel tampilan: penanganan layar terpisah",
+    "purity": 0.9368,
+    "truth_mix": {
+      "Television": 163,
+      "Microwave": 9,
+      "Player": 1,
+      "Washing Machine": 1
+    },
+    "prompt_profile": {
+      "Battery": 0.1389,
+      "Keyboard": 0.1315,
+      "Microwave": 0.2115,
+      "Mobile": 0.1916,
+      "Mouse": 0.1516,
+      "PCB": 0.1564,
+      "Player": 0.1399,
+      "Printer": 0.137,
+      "Television": 0.2962,
+      "Washing Machine": 0.1573
+    }
+  },
+  {
+    "id": 13,
+    "label": "Printer",
+    "n_images": 274,
+    "sim_top1": 0.2839,
+    "label_top2": "Mobile",
+    "sim_top2": 0.1832,
+    "margin": 0.1007,
+    "route": "BULK",
+    "handling": "Mesin kantor: pemisahan mekanik dan papan",
+    "purity": 0.9927,
+    "truth_mix": {
+      "Printer": 272,
+      "Microwave": 1,
+      "Player": 1
+    },
+    "prompt_profile": {
+      "Battery": 0.132,
+      "Keyboard": 0.1363,
+      "Microwave": 0.1493,
+      "Mobile": 0.1832,
+      "Mouse": 0.1485,
+      "PCB": 0.1489,
+      "Player": 0.1237,
+      "Printer": 0.2839,
+      "Television": 0.1358,
+      "Washing Machine": 0.1603
+    }
+  }
+]
