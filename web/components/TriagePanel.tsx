@@ -79,30 +79,32 @@ export default function TriagePanel() {
     setCameraActive(false);
   };
 
-  // Handle capture
+  // Jepret frame dari video feed, jadikan File, biarkan auto-submit yang jalan
   const capturePhoto = () => {
     if (!videoRef.current || !cameraActive) return;
-    
+
     const canvas = document.createElement("canvas");
     canvas.width = videoRef.current.videoWidth;
     canvas.height = videoRef.current.videoHeight;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    
+
     ctx.drawImage(videoRef.current, 0, 0);
-    
+
     canvas.toBlob((blob) => {
-      if (blob) {
-        const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
-        reset();
-        setFile(file);
-        setPreviewUrl(URL.createObjectURL(file));
-        stopCamera();
-      }
+      if (!blob) return;
+      const shot = new File([blob], "capture.jpg", { type: "image/jpeg" });
+      setPhase("idle");
+      setResult(null);
+      setError("");
+      setProgress(0);
+      setFile(shot);
+      setPreviewUrl(URL.createObjectURL(shot));
+      stopCamera();
     }, "image/jpeg", 0.9);
   };
 
-  const submitAnalysis = async () => {
+  const submitAnalysis = useCallback(async () => {
     if (!file) return;
 
     setPhase("loading");
@@ -143,7 +145,14 @@ export default function TriagePanel() {
       setError(err.message || "Gagal menghubungi backend");
       setPhase("error");
     }
-  };
+  }, [file]);
+
+  // Auto-submit saat file terisi dari DragDrop / Browse / Capture Kamera
+  useEffect(() => {
+    if (file && phase === "idle") {
+      submitAnalysis();
+    }
+  }, [file, phase, submitAnalysis]);
 
   // File drop
   const onDrop = (e: React.DragEvent) => {
@@ -230,16 +239,6 @@ export default function TriagePanel() {
             </div>
           )}
 
-          {/* Tombol Aksi Utama */}
-          {file && !cameraActive && phase === "idle" && (
-            <button
-              onClick={submitAnalysis}
-              className="mt-2 w-full min-h-12 border border-amber bg-amber/10 text-amber text-xs font-semibold tracking-wide hover:bg-amber hover:text-void transition-colors"
-            >
-              MULAI ANALISIS
-            </button>
-          )}
-
           {/* Preview Foto Mini di bawah input */}
           {file && !cameraActive && (
             <div className="mt-4 flex gap-4 items-center border border-edge p-2 bg-void">
@@ -299,19 +298,22 @@ export default function TriagePanel() {
 }
 
 function ResultCard({ data, onReset }: { data: Prediction; onReset: () => void }) {
-  const auto = data.status === "classified";
   const cMeta = CLUSTERS_META[data.cluster.id];
+  // Kalau backend mengirim id di luar tabel, turunkan ke peninjauan manual daripada crash
+  const auto = data.status === "classified" && Boolean(cMeta);
   const laneKey = auto ? cMeta.lane : 'MR';
   const lane = LANES[laneKey];
   
-  const reason = !auto 
-    ? `Selisih skor ke klaster kedua (C${data.runner_up.id} · ${data.runner_up.label}) terlalu kecil. Objek ambigu atau jenis langka, jadi petugas yang memeriksa.` 
+  const reason = !auto
+    ? data.runner_up
+      ? `Selisih skor ke klaster kedua (C${data.runner_up.id} · ${data.runner_up.label}) terlalu kecil, jadi petugas yang memeriksa.`
+      : `Selisih skor antar klaster terlalu kecil, jadi petugas yang memeriksa.`
     : '';
 
   const fillColorClass = auto ? 'var(--amber)' : 'var(--bone-dim)';
   const fillWord = auto ? 'Tinggi' : 'Rendah';
 
-  const zsEntries = Object.entries(data.zs_scores)
+  const zsEntries = Object.entries(data.zs_scores ?? {})
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3);
   
@@ -328,7 +330,9 @@ function ResultCard({ data, onReset }: { data: Prediction; onReset: () => void }
           <h3 className="text-2xl font-bold leading-tight text-bone">{auto ? cMeta.name : "Belum dapat dipastikan"}</h3>
         </div>
         <p className="res-sub text-bone-dim mt-1">
-          {auto ? cMeta.sub : `Kandidat terdekat: C${cMeta.id} · ${cMeta.sub} (label zero-shot: ${data.cluster.label})`}
+          {auto
+            ? cMeta.sub
+            : `Kandidat terdekat: C${data.cluster.id} (label zero-shot: ${data.cluster.label})`}
         </p>
 
         <div className="grid sm:grid-cols-2 gap-4 mt-4">
