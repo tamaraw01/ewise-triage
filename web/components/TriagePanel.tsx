@@ -5,13 +5,26 @@ import { API_BASE, fixed4, CLUSTERS_META, LANES } from "@/lib/data";
 import { MarginMeter, StatusPill, IconWarn } from "./Primitives";
 import ClusterMap from "./ClusterMap";
 
+type ZeroShot = { label: string; similarity: number };
+
 type Prediction = {
-  status: "classified" | "manual";
+  status: "classified" | "review";
   margin: number;
   threshold: number;
-  cluster: { id: number; label: string };
-  runner_up: { id: number; label: string };
-  zs_scores: Record<string, number>;
+  top_similarity: number;
+  cluster: {
+    id: number;
+    label: string | null;
+    route: string;
+    handling: string;
+    n_images: number;
+    purity: number;
+    contested: boolean;
+  };
+  runner_up: { id: number; label: string | null };
+  ranking: { cluster: number; label: string | null; similarity: number }[];
+  zero_shot: ZeroShot[];
+  disclaimer: string;
 };
 
 export default function TriagePanel() {
@@ -305,19 +318,16 @@ function ResultCard({ data, onReset }: { data: Prediction; onReset: () => void }
   const lane = LANES[laneKey];
   
   const reason = !auto
-    ? data.runner_up
-      ? `Selisih skor ke klaster kedua (C${data.runner_up.id} · ${data.runner_up.label}) terlalu kecil, jadi petugas yang memeriksa.`
-      : `Selisih skor antar klaster terlalu kecil, jadi petugas yang memeriksa.`
+    ? data.runner_up?.label
+      ? `${data.cluster.handling}. Kandidat kedua C${data.runner_up.id} (${data.runner_up.label}) terlalu rapat.`
+      : data.cluster.handling
     : '';
 
   const fillColorClass = auto ? 'var(--amber)' : 'var(--bone-dim)';
   const fillWord = auto ? 'Tinggi' : 'Rendah';
 
-  const zsEntries = Object.entries(data.zs_scores ?? {})
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3);
-  
-  const maxScore = zsEntries[0]?.[1] || 1;
+  const zsEntries = (data.zero_shot ?? []).slice(0, 3);
+  const maxScore = zsEntries[0]?.similarity || 1;
 
   return (
     <div className="panel res-main">
@@ -368,22 +378,28 @@ function ResultCard({ data, onReset }: { data: Prediction; onReset: () => void }
         <div className="box mt-4">
           <span className="label">Zero-Shot Similarity · 3 Teratas</span>
           <div className="flex flex-col gap-3 mt-2">
-            {zsEntries.map(([label, score], i) => (
-              <div key={i} className="flex flex-col gap-1">
+            {zsEntries.map((zs, i) => (
+              <div key={zs.label} className="flex flex-col gap-1">
                 <div className="flex justify-between text-xs font-mono">
-                  <span className="text-bone capitalize">{label}</span>
-                  <span className="text-bone-dim">{fixed4(score)}</span>
+                  <span className="text-bone capitalize">{zs.label}</span>
+                  <span className="text-bone-dim">{fixed4(zs.similarity)}</span>
                 </div>
                 <div className="h-1.5 bg-edge overflow-hidden">
                   <div 
                     className="h-full bg-bone transition-all duration-500" 
-                    style={{ width: `${(score / maxScore) * 100}%`, opacity: i === 0 ? 1 : 0.4 }} 
+                    style={{ width: `${(zs.similarity / maxScore) * 100}%`, opacity: i === 0 ? 1 : 0.4 }} 
                   />
                 </div>
               </div>
             ))}
           </div>
         </div>
+
+        {data.disclaimer && (
+          <p className="mt-4 text-[11px] leading-relaxed text-bone-dim border-t border-edge pt-3">
+            {data.disclaimer}
+          </p>
+        )}
 
         <button
           type="button"
