@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { API_BASE, ROUTES, fixed4 } from "@/lib/data";
 import { MarginGauge, RouteTag } from "./Primitives";
+import CameraCapture from "./CameraCapture";
 
 type Prediction = {
   status: "classified" | "review";
@@ -36,16 +37,10 @@ export default function TriagePanel() {
   const [preview, setPreview] = useState<string>("");
   const [name, setName] = useState<string>("");
   const [dragging, setDragging] = useState(false);
+  const [mode, setMode] = useState<"kamera" | "berkas">("kamera");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const submit = useCallback(async (file: File) => {
-    if (!API_BASE) {
-      setPhase("error");
-      setError(
-        "Alamat backend belum dikonfigurasi. Setel NEXT_PUBLIC_API_BASE ke URL Space inference, lalu muat ulang.",
-      );
-      return;
-    }
     if (file.size > MAX_BYTES) {
       setPhase("error");
       setError("Berkas melebihi 12 MB. Gunakan citra yang lebih kecil.");
@@ -57,6 +52,15 @@ export default function TriagePanel() {
       if (prev) URL.revokeObjectURL(prev);
       return URL.createObjectURL(file);
     });
+
+    if (!API_BASE) {
+      setPhase("error");
+      setError(
+        "Alamat backend belum dikonfigurasi. Setel NEXT_PUBLIC_API_BASE ke URL layanan inference, lalu muat ulang.",
+      );
+      return;
+    }
+
     setPhase("loading");
     setError("");
     setResult(null);
@@ -75,7 +79,7 @@ export default function TriagePanel() {
       setPhase("error");
       setError(
         err instanceof Error
-          ? `${err.message}. Space inference mungkin sedang bangun dari kondisi tidur, coba lagi dalam satu menit.`
+          ? `${err.message}. Layanan inference mungkin sedang bangun dari kondisi tidur, coba lagi dalam satu menit.`
           : "Permintaan gagal.",
       );
     }
@@ -98,9 +102,43 @@ export default function TriagePanel() {
       <div className="border border-edge bg-iron p-5">
         <h3 className="text-sm font-semibold tracking-wide">Masukan citra</h3>
         <p className="mt-2 text-xs leading-relaxed text-bone-dim">
-          Satu foto barang elektronik. Berkas JPG, PNG, atau WebP hingga 12 MB.
+          Jepret langsung dari kamera perangkat, atau kirim satu berkas JPG, PNG, atau WebP hingga 12 MB.
         </p>
 
+        <div className="mt-4 flex border border-edge" role="tablist" aria-label="Cara memasukkan citra">
+          <button
+            type="button"
+            role="tab"
+            id="tab-kamera"
+            aria-selected={mode === "kamera"}
+            aria-controls="panel-kamera"
+            onClick={() => setMode("kamera")}
+            className={`num min-h-11 flex-1 px-3 py-2 text-[11px] font-semibold tracking-wider transition-colors ${
+              mode === "kamera" ? "bg-amber text-void" : "text-bone-dim hover:text-amber"
+            }`}
+          >
+            KAMERA
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="tab-berkas"
+            aria-selected={mode === "berkas"}
+            aria-controls="panel-berkas"
+            onClick={() => setMode("berkas")}
+            className={`num min-h-11 flex-1 border-l border-edge px-3 py-2 text-[11px] font-semibold tracking-wider transition-colors ${
+              mode === "berkas" ? "bg-amber text-void" : "text-bone-dim hover:text-amber"
+            }`}
+          >
+            BERKAS
+          </button>
+        </div>
+
+        <div id="panel-kamera" role="tabpanel" aria-labelledby="tab-kamera" hidden={mode !== "kamera"}>
+          <CameraCapture onCapture={(f) => void submit(f)} disabled={phase === "loading"} />
+        </div>
+
+        <div id="panel-berkas" role="tabpanel" aria-labelledby="tab-berkas" hidden={mode !== "berkas"}>
         <label
           htmlFor="berkas-citra"
           onDragOver={(e) => {
@@ -132,6 +170,7 @@ export default function TriagePanel() {
             if (f) void submit(f);
           }}
         />
+        </div>
 
         {preview ? (
           <figure className="mt-4">
@@ -159,7 +198,15 @@ export default function TriagePanel() {
       <div className="border border-edge bg-iron p-5" aria-live="polite" aria-busy={phase === "loading"}>
         {phase === "idle" ? <IdleState /> : null}
         {phase === "loading" ? <LoadingState /> : null}
-        {phase === "error" ? <ErrorState message={error} onRetry={() => inputRef.current?.click()} /> : null}
+        {phase === "error" ? (
+          <ErrorState
+            message={error}
+            onRetry={() => {
+              setMode("berkas");
+              requestAnimationFrame(() => inputRef.current?.click());
+            }}
+          />
+        ) : null}
         {phase === "done" && result ? <ResultState data={result} /> : null}
       </div>
     </div>
@@ -202,7 +249,7 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
         onClick={onRetry}
         className="mt-4 min-h-11 self-start border border-amber px-4 py-2.5 text-xs font-semibold tracking-wide text-amber"
       >
-        Pilih berkas lain
+        Coba citra lain
       </button>
     </div>
   );

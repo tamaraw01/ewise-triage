@@ -22,7 +22,7 @@ export default function Home() {
               Konsol triase citra limbah elektronik
             </h1>
             <p className="mt-5 max-w-2xl text-sm leading-relaxed text-bone-dim sm:text-base">
-              Satu foto barang elektronik dipetakan ke salah satu dari {v.n_clusters} klaster yang
+              Foto barang elektronik, dijepret langsung dari kamera atau diunggah, dipetakan ke salah satu dari {v.n_clusters} klaster yang
               ditemukan dari {meta.dataset_images_used.toLocaleString("id-ID")} citra dataset BDC
               2026, lalu dikembalikan sebagai jalur penanganan. Bila margin keyakinan di bawah
               ambang, konsol menolak memberi label dan menyerahkan keputusan ke petugas.
@@ -43,7 +43,7 @@ export default function Home() {
             <SectionHead
               index="01"
               title="Triase satu citra"
-              lead="Citra dikirim ke backend inference, diubah menjadi vektor CLIP ViT-H/14, lalu dibandingkan ke centroid setiap klaster memakai cosine similarity."
+              lead="Jepret barang lewat kamera perangkat atau kirim satu berkas. Citra diteruskan ke backend inference, diubah menjadi vektor CLIP ViT-H/14, lalu dibandingkan ke centroid setiap klaster memakai cosine similarity."
             />
             <TriagePanel />
           </div>
@@ -83,7 +83,7 @@ export default function Home() {
             />
 
             <ol className="grid gap-px border border-edge bg-edge sm:grid-cols-2 lg:grid-cols-3">
-              <Step n="1" t="Penyaringan masukan" d={`${meta.dataset_images_total.toLocaleString("id-ID")} citra disaring menurut prefix nama berkas ke sepuluh kelas. ${meta.dataset_images_dropped.toLocaleString("id-ID")} citra di luar daftar dibuang.`} />
+              <Step n="1" t="Penyaringan masukan acuan" d={`${meta.dataset_images_total.toLocaleString("id-ID")} citra disaring menurut prefix nama berkas ke sepuluh kelas. ${meta.dataset_images_dropped.toLocaleString("id-ID")} citra di luar daftar dibuang.`} />
               <Step n="2" t="Representasi visual" d={`${meta.backbone} menghasilkan vektor ${meta.embed_dim} dimensi tanpa label, lalu dinormalisasi L2 agar jarak Euclidean setara jarak kosinus.`} />
               <Step n="3" t="Reduksi manifold" d="UMAP 50 dimensi (metrik kosinus) sebagai ruang pengelompokan, UMAP 2 dimensi hanya untuk visualisasi." />
               <Step n="4" t="Konsensus tiga metode" d="K-Means (K=9) dan Ward (K=9) dipilih dengan silhouette, GMM (K=14) dengan BIC. Matriks co-association tiga partisi dipotong menjadi 14 klaster final." />
