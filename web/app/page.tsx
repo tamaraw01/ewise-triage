@@ -1,6 +1,6 @@
 "use client";
 
-import { TriagePanel } from "@/components/TriagePanel";
+import TriagePanel from "@/components/TriagePanel";
 
 export default function Page() {
   return (
