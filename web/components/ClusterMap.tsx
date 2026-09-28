@@ -9,9 +9,8 @@ const PAD = 28;
 
 /**
  * Peta radar UMAP. Dua mode:
- * - scanning=true: titik berkedip acak, simulasi pencarian centroid
- * - highlightedId=number: sorot satu klaster (hasil inference)
- * - tanpa keduanya: semua titik redup, menunggu input
+ * - scanning=true: titik berkedip berurutan disapu sonar (loading)
+ * - scanning=false + highlightedId: satu klaster menyala, sisa redup (hasil)
  */
 export default function ClusterMap({
   highlightedId,
@@ -20,118 +19,122 @@ export default function ClusterMap({
   highlightedId?: number | null;
   scanning?: boolean;
 }) {
-  const { pts, centers } = useMemo(() => {
-    const xs = scatter.map((p) => p.x);
-    const ys = scatter.map((p) => p.y);
-    const b = {
-      x0: Math.min(...xs),
-      x1: Math.max(...xs),
-      y0: Math.min(...ys),
-      y1: Math.max(...ys),
-    };
-    const sx = (v: number) => PAD + ((v - b.x0) / (b.x1 - b.x0)) * (W - PAD * 2);
-    const sy = (v: number) => H - PAD - ((v - b.y0) / (b.y1 - b.y0)) * (H - PAD * 2);
-    const mapped = scatter.map((p) => ({ ...p, px: sx(p.x), py: sy(p.y) }));
-
-    const acc = new Map<number, { x: number; y: number; n: number }>();
-    for (const p of mapped) {
-      const c = acc.get(p.c) ?? { x: 0, y: 0, n: 0 };
-      c.x += p.px;
-      c.y += p.py;
-      c.n += 1;
-      acc.set(p.c, c);
+  const points = useMemo(() => {
+    if (scatter.length === 0) return [];
+    let minX = Infinity, maxX = -Infinity;
+    let minY = Infinity, maxY = -Infinity;
+    for (const p of scatter) {
+      if (p.x < minX) minX = p.x;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.y > maxY) maxY = p.y;
     }
-    const cArr = [...acc.entries()].map(([id, v]) => ({
-      id,
-      x: v.x / v.n,
-      y: v.y / v.n,
-    }));
+    const rx = maxX - minX || 1;
+    const ry = maxY - minY || 1;
 
-    return { pts: mapped, centers: cArr };
+    // Normalisasi, tapi kita perlu hitung sudut untuk delay sonar.
+    // Asumsikan tengah SVG adalah cx=W/2, cy=H/2
+    const cx = W / 2;
+    const cy = H / 2;
+
+    return scatter.map((p) => {
+      const px = PAD + ((p.x - minX) / rx) * (W - PAD * 2);
+      const py = PAD + ((p.y - minY) / ry) * (H - PAD * 2);
+      
+      // Hitung sudut dari tengah (0 s/d 360). y dibalik karena koordinat SVG terbalik.
+      let angle = Math.atan2(py - cy, px - cx) * (180 / Math.PI);
+      // Offset 90deg karena conic-gradient mulai dari atas (jam 12) arah jarum jam
+      angle = (angle + 90 + 360) % 360;
+      
+      // Waktu putaran 3 detik (3000ms), hitung persentase waktu.
+      // Sinar nyapu searah jarum jam, maka delay sama dengan proporsi sudut.
+      const delay = (angle / 360) * 3;
+
+      return { ...p, px, py, angle, delay };
+    });
   }, []);
 
   return (
-    <div className="relative w-full h-full min-h-[280px]">
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className="w-full h-full"
-        role="img"
-        aria-label="Peta radar klaster UMAP"
-      >
-        {/* Grid axis */}
-        <line x1={PAD} y1={H - PAD} x2={W - PAD} y2={H - PAD} stroke="#3a342a" strokeWidth="1" />
-        <line x1={PAD} y1={PAD} x2={PAD} y2={H - PAD} stroke="#3a342a" strokeWidth="1" />
-        {Array.from({ length: 25 }, (_, i) => {
-          const x = PAD + (i / 24) * (W - PAD * 2);
-          return (
-            <line
-              key={`tx${i}`}
-              x1={x}
-              y1={H - PAD}
-              x2={x}
-              y2={H - PAD + (i % 5 === 0 ? 7 : 3)}
-              stroke="#3a342a"
-              strokeWidth="1"
-            />
-          );
-        })}
+    <div className="relative w-full overflow-hidden bg-void">
+      {/* Background Grid */}
+      <div 
+        className="absolute inset-0 pointer-events-none opacity-20"
+        style={{ backgroundImage: "radial-gradient(#ebb303 1px, transparent 1px)", backgroundSize: "24px 24px" }}
+      />
+      
+      {/* Cincin Sonar Statis (hanya saat scanning) */}
+      {scanning && (
+        <>
+          <div className="sonar-ring w-1/4 h-1/4" />
+          <div className="sonar-ring w-2/4 h-2/4" />
+          <div className="sonar-ring w-3/4 h-3/4" />
+          <div className="sonar-ring w-full h-full" />
+        </>
+      )}
 
-        {/* Data points */}
-        {pts.map((p, i) => {
-          const hit = highlightedId !== null && highlightedId !== undefined && highlightedId === p.c;
-          const dim = highlightedId !== null && highlightedId !== undefined && !hit;
-          return (
-            <circle
-              key={i}
-              cx={p.px}
-              cy={p.py}
-              r={hit ? 3.5 : 2}
-              fill={hit ? "#f0a030" : "#a8a196"}
-              opacity={dim ? 0.1 : hit ? 1 : 0.35}
-              className={scanning ? "animate-radar-dot" : ""}
-              style={scanning ? { animationDelay: `${(i * 37) % 2000}ms` } : undefined}
-            />
-          );
-        })}
+      {/* Sweeping Sonar Beam */}
+      {scanning && (
+        <div className="absolute inset-[-50%] pointer-events-none flex items-center justify-center">
+          <div className="w-[150%] aspect-square sonar-sweep" />
+        </div>
+      )}
 
-        {/* Centroid labels */}
-        {centers.map((c) => {
-          const hit = highlightedId === c.id;
-          return (
-            <text
-              key={c.id}
-              x={c.x}
-              y={c.y}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fontSize="11"
-              fontWeight="600"
-              fill={hit ? "#100e0b" : "#e8e3d9"}
-              stroke={hit ? "#f0a030" : "#100e0b"}
-              strokeWidth="3.5"
-              paintOrder="stroke"
-              className={hit ? "animate-pulse" : ""}
-              style={{ fontFamily: "var(--font-plex-mono), monospace" }}
-            >
-              C{c.id}
-            </text>
-          );
-        })}
+      {/* Titik Scatter (di atas sonar) */}
+      <div className="relative z-10 w-full pb-[63.8%]">
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          preserveAspectRatio="xMidYMid meet"
+          className="absolute inset-0 h-full w-full"
+        >
+          {points.map((p, i) => {
+            const active = highlightedId !== undefined && highlightedId === p.c;
+            const dim = highlightedId !== undefined && highlightedId !== p.c && !scanning;
+            
+            return (
+              <circle
+                key={i}
+                cx={p.px}
+                cy={p.py}
+                r={active ? 3.5 : 2}
+                fill={active ? "var(--amber)" : "var(--bone-dim)"}
+                className={scanning ? "animate-radar-dot" : "transition-opacity duration-700"}
+                style={{
+                  animationDelay: scanning ? `${p.delay}s` : "0s",
+                  opacity: scanning ? undefined : (dim ? 0.15 : (active ? 1 : 0.4))
+                }}
+              />
+            );
+          })}
 
-        {/* Scanning sweep line */}
-        {scanning && (
-          <line
-            x1={PAD}
-            y1={PAD}
-            x2={W - PAD}
-            y2={H - PAD}
-            stroke="#f0a030"
-            strokeWidth="1"
-            opacity="0.3"
-            className="animate-sweep"
-          />
-        )}
-      </svg>
+          {/* Sorotan ekstra buat titik centroid pemenang (jika ada) */}
+          {highlightedId !== undefined && !scanning && (
+            points.filter(p => p.c === highlightedId).map((p, i) => {
+              // Gambar ring berdenyut (pulse) di sekitar klaster pemenang. 
+              // Kita ambil rata-rata centroid titik-titik pemenang, tapi ini per titik.
+              // Agar tidak terlalu ramai, gambar pulse cuma di titik pertama pemenang sbg jangkar
+              if (i !== 0) return null;
+              return (
+                <circle
+                  key={`pulse-${i}`}
+                  cx={p.px}
+                  cy={p.py}
+                  r={12}
+                  fill="none"
+                  stroke="var(--amber)"
+                  strokeWidth={1}
+                  className="animate-pulse"
+                />
+              );
+            })
+          )}
+        </svg>
+      </div>
+      
+      {/* Scanline CRT overlay permanen (estetika industrial) */}
+      <div 
+        className="absolute inset-0 pointer-events-none mix-blend-overlay opacity-30" 
+        style={{ background: "linear-gradient(rgba(18,16,12,0) 50%, rgba(0,0,0,0.25) 50%), linear-gradient(90deg, rgba(255,0,0,0.06), rgba(0,255,0,0.02), rgba(0,0,255,0.06))", backgroundSize: "100% 4px, 3px 100%" }}
+      />
     </div>
   );
 }

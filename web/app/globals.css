@@ -86,15 +86,30 @@ body {
   }
 }
 
-/* Animasi radar untuk peta klaster saat loading */
-@keyframes radar-dot {
-  0%, 100% { opacity: 0.15; }
-  50% { opacity: 0.8; }
+/* Animasi Sonar Radar */
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
-@keyframes sweep {
-  0% { transform: rotate(0deg); transform-origin: center; opacity: 0.3; }
-  100% { transform: rotate(360deg); transform-origin: center; opacity: 0.1; }
+@keyframes radar-dot {
+  0% { opacity: 0.1; filter: brightness(0.5); }
+  5% { opacity: 1; filter: brightness(2); transform: scale(1.5); }
+  20% { transform: scale(1); }
+  100% { opacity: 0.3; filter: brightness(1); }
+}
+
+.sonar-sweep {
+  background: conic-gradient(from 0deg, transparent 0deg, transparent 270deg, rgba(235,179,3,0.1) 320deg, rgba(235,179,3,0.8) 360deg);
+  border-radius: 50%;
+  animation: spin 3s linear infinite;
+}
+
+.sonar-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(235,179,3,0.2);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .animate-radar-dot {
