@@ -86,7 +86,7 @@ export default function ClusterMap({
           preserveAspectRatio="xMidYMid meet"
           className="absolute inset-0 h-full w-full"
         >
-          {points.map((p, i) => {
+          {points.map((p: any, i: number) => {
             const active = highlightedId !== undefined && highlightedId === p.c;
             const dim = highlightedId !== undefined && highlightedId !== p.c && !scanning;
             
@@ -108,7 +108,7 @@ export default function ClusterMap({
 
           {/* Sorotan ekstra buat titik centroid pemenang (jika ada) */}
           {highlightedId !== undefined && !scanning && (
-            points.filter(p => p.c === highlightedId).map((p, i) => {
+            points.filter((p: any) => p.c === highlightedId).map((p: any, i: number) => {
               // Gambar ring berdenyut (pulse) di sekitar klaster pemenang. 
               // Kita ambil rata-rata centroid titik-titik pemenang, tapi ini per titik.
               // Agar tidak terlalu ramai, gambar pulse cuma di titik pertama pemenang sbg jangkar

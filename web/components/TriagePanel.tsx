@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { API_BASE, ROUTES, fixed4 } from "@/lib/data";
-import { MarginGauge, RouteTag } from "./Primitives";
+import { API_BASE, fixed4, CLUSTERS_META, LANES } from "@/lib/data";
+import { MarginMeter, StatusPill, IconWarn } from "./Primitives";
 import CameraCapture from "./CameraCapture";
 import ClusterMap from "./ClusterMap";
 
@@ -41,7 +41,6 @@ export function TriagePanel() {
   const [mode, setMode] = useState<"berkas" | "kamera">("berkas");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Keep-alive: ping backend setiap 4 menit agar model tetap termuat di RAM
   useEffect(() => {
     if (!API_BASE) return;
     const ping = () => fetch(`${API_BASE}/health`).catch(() => {});
@@ -107,9 +106,7 @@ export function TriagePanel() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Baris atas: input + pratinjau */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Panel input */}
         <div className="border border-edge bg-iron p-5 flex flex-col">
           <div className="flex border border-edge" role="tablist">
             <button
@@ -172,7 +169,6 @@ export function TriagePanel() {
           </div>
         </div>
 
-        {/* Pratinjau foto: selalu tampil selama ada preview */}
         <div className="border border-edge bg-iron p-5 flex flex-col items-center justify-center">
           {preview ? (
             <figure className="w-full flex flex-col items-center gap-3">
@@ -195,7 +191,6 @@ export function TriagePanel() {
         </div>
       </div>
 
-      {/* Peta radar: muncul saat loading atau setelah hasil */}
       {(phase === "loading" || phase === "done") && (
         <div className="border border-edge bg-iron p-5">
           <div className="flex justify-between items-baseline mb-3">
@@ -213,12 +208,10 @@ export function TriagePanel() {
         </div>
       )}
 
-      {/* Hasil inference */}
       {phase === "done" && result && (
         <ResultCard data={result} onReset={reset} />
       )}
 
-      {/* Error */}
       {phase === "error" && (
         <div className="border border-edge bg-iron p-5">
           <h3 className="text-sm font-semibold tracking-wide text-amber">Gagal</h3>
@@ -237,52 +230,79 @@ export function TriagePanel() {
 }
 
 function ResultCard({ data, onReset }: { data: Prediction; onReset: () => void }) {
-  const route = ROUTES[data.cluster.route] ?? ROUTES.MANUAL_REVIEW;
-  const accepted = data.status === "classified";
+  const auto = data.status === "classified";
+  const cMeta = CLUSTERS_META[data.cluster.id];
+  const laneKey = auto ? cMeta.lane : 'MR';
+  const lane = LANES[laneKey];
+  
+  const reason = !auto 
+    ? `Selisih skor ke klaster kedua (C${data.runner_up.id} · ${data.runner_up.label}) terlalu kecil. Objek ambigu atau jenis langka, jadi petugas yang memeriksa.` 
+    : '';
+
+  const fillColorClass = auto ? 'var(--ok)' : 'var(--warn)';
+  const fillWord = auto ? 'Tinggi' : 'Rendah';
 
   return (
-    <div className="border border-edge bg-iron p-5 space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div>
-          <p className="num text-[11px] tracking-widest text-bone-dim">KLASTER C{data.cluster.id}</p>
-          <h3 className="mt-1 text-2xl font-bold tracking-tight text-white">
-            {accepted ? data.cluster.label : "Tidak diputuskan"}
-          </h3>
-          <p className="mt-2 text-sm leading-relaxed text-bone">{data.cluster.handling}</p>
-        </div>
-        <RouteTag code={data.cluster.route} accent={route.accent} />
+    <div className="res-main mt-2">
+      <StatusPill auto={auto} text={auto ? "Diterima otomatis" : "Peninjauan manual"} />
+      
+      <div className="res-title mt-2">
+        <span className="num min-h-6 inline-flex items-center border border-edge rounded px-2 text-bone-dim">C{data.cluster.id}</span>
+        <h3 className="text-3xl font-bold leading-tight">{auto ? cMeta.name : "Belum dapat dipastikan"}</h3>
       </div>
+      <p className="res-sub">
+        {auto ? cMeta.sub : `Kandidat terdekat: C${cMeta.id} · ${cMeta.sub} (label zero-shot: ${data.cluster.label})`}
+      </p>
 
-      <div className="grid sm:grid-cols-2 gap-5">
-        <div>
-          <div className="mb-2 flex items-baseline justify-between">
-            <span className="text-xs font-semibold text-bone-dim">Margin</span>
-            <span className="num text-sm font-semibold text-amber">{fixed4(data.margin)}</span>
+      <div className="grid sm:grid-cols-2 gap-4 mt-2">
+        <div className="box">
+          <span className="label">Confidence margin</span>
+          <div className="big-num text-2xl font-mono mt-1">
+            {fixed4(data.margin)}
+            <small className="ml-2 font-sans text-sm font-semibold" style={{ color: fillColorClass }}>{fillWord}</small>
           </div>
-          <MarginGauge value={data.margin} threshold={data.threshold} />
-          {data.cluster.contested && (
-            <p className="mt-3 text-[10px] leading-relaxed text-amber border-l border-amber pl-2">
-              Klaster terbantah (purity {(data.cluster.purity * 100).toFixed(1)}%). Perlakukan sebagai petunjuk.
+          <MarginMeter margin={data.margin} threshold={data.threshold} colorClass={fillColorClass} />
+        </div>
+        
+        <div className="box">
+          <span className="label">Tindakan</span>
+          <span className="lane"><i style={{ backgroundColor: lane.color }}></i>{lane.code} · {lane.desc}</span>
+          <p className="text-sm mt-1 mb-2">{auto ? cMeta.action : reason}</p>
+          
+          {auto && cMeta.hazard && (
+            <div className="flex gap-2 items-start bg-danger-dim text-danger p-2 rounded text-xs font-semibold">
+              <IconWarn />
+              <span>{cMeta.hazard}</span>
+            </div>
+          )}
+          
+          {auto && (
+            <p className="text-xs text-bone-dim mt-auto">
+              <b className="text-bone">Material utama:</b> {cMeta.material}
             </p>
           )}
         </div>
-        <div className="border border-edge bg-void p-3">
-          <h4 className="text-[10px] font-semibold tracking-wide text-bone-dim mb-2 uppercase">Zero-shot</h4>
-          <ul className="space-y-1">
-            {data.zero_shot.slice(0, 3).map((z, i) => (
-              <li key={z.label} className="flex justify-between text-xs">
-                <span className={i === 0 ? "text-bone" : "text-bone-dim"}>{z.label}</span>
-                <span className="num text-bone-dim">{fixed4(z.similarity)}</span>
-              </li>
-            ))}
-          </ul>
+      </div>
+
+      <div className="box mt-2">
+        <span className="label mb-2">Zero-shot Similarity · 3 Teratas</span>
+        <div className="flex flex-col gap-1">
+          {data.zero_shot.slice(0, 3).map((z, i) => (
+            <div key={z.label} className="grid grid-cols-[auto_1fr_auto] items-center gap-2 text-xs">
+              <span className={`truncate ${i === 0 ? "text-bone font-medium" : "text-bone-dim"}`}>{z.label}</span>
+              <span className="h-2 bg-edge rounded-full overflow-hidden">
+                <i className="block h-full bg-bone-dim rounded-full" style={{ width: `${Math.max(0, (z.similarity / data.zero_shot[0].similarity) * 100)}%` }} />
+              </span>
+              <span className="num text-bone-dim text-right w-12">{fixed4(z.similarity)}</span>
+            </div>
+          ))}
         </div>
       </div>
 
       <button
         type="button"
         onClick={onReset}
-        className="min-h-11 w-full border border-edge bg-void px-4 py-2.5 text-xs font-semibold tracking-wide transition-colors hover:border-amber hover:text-amber"
+        className="mt-2 min-h-11 w-full border border-edge bg-void px-4 py-2.5 text-xs font-semibold tracking-wide transition-colors hover:border-amber hover:text-amber"
       >
         Analisis Citra Baru
       </button>
