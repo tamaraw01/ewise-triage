@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: ewise-triage-api
+    env: docker
+    plan: free
+    region: frankfurt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 10000

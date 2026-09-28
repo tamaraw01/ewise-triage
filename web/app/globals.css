@@ -86,6 +86,25 @@ body {
   }
 }
 
+/* Animasi radar untuk peta klaster saat loading */
+@keyframes radar-dot {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes sweep {
+  0% { transform: rotate(0deg); transform-origin: center; opacity: 0.3; }
+  100% { transform: rotate(360deg); transform-origin: center; opacity: 0.1; }
+}
+
+.animate-radar-dot {
+  animation: radar-dot 1.8s ease-in-out infinite;
+}
+
+.animate-sweep {
+  animation: sweep 3s linear infinite;
+}
+
 .num {
   font-family: var(--font-plex-mono), ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
