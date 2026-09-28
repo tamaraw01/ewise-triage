@@ -149,7 +149,7 @@ export default function TriagePanel() {
           <button
             type="button"
             onClick={reset}
-            className="mt-4 w-full border border-edge px-4 py-2.5 text-xs font-semibold tracking-wide transition-colors hover:border-amber hover:text-amber"
+            className="mt-4 min-h-11 w-full border border-edge px-4 py-2.5 text-xs font-semibold tracking-wide transition-colors hover:border-amber hover:text-amber"
           >
             Kosongkan dan mulai lagi
           </button>
@@ -200,7 +200,7 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
       <button
         type="button"
         onClick={onRetry}
-        className="mt-4 self-start border border-amber px-4 py-2.5 text-xs font-semibold tracking-wide text-amber"
+        className="mt-4 min-h-11 self-start border border-amber px-4 py-2.5 text-xs font-semibold tracking-wide text-amber"
       >
         Pilih berkas lain
       </button>

@@ -115,7 +115,7 @@ export default function ClusterMap() {
               type="button"
               onClick={() => setActive(null)}
               aria-pressed={active === null}
-              className={`num border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${
+              className={`num min-h-11 border px-3 py-1.5 text-[11px] font-semibold transition-colors sm:min-h-0 ${
                 active === null ? "border-amber bg-amber text-void" : "border-edge hover:border-amber"
               }`}
             >
@@ -127,7 +127,7 @@ export default function ClusterMap() {
                 type="button"
                 onClick={() => setActive(active === c.id ? null : c.id)}
                 aria-pressed={active === c.id}
-                className={`num border px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${
+                className={`num min-h-11 border px-3 py-1.5 text-[11px] font-semibold transition-colors sm:min-h-0 ${
                   active === c.id ? "border-amber bg-amber text-void" : "border-edge hover:border-amber"
                 }`}
               >

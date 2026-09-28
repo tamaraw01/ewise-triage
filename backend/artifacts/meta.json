@@ -13,7 +13,7 @@
     "Television",
     "Washing Machine"
   ],
-  "source_experiment": "EXP 14 \u2014 co-association ensemble (KMeans 9, Ward 9, GMM 14) -> K final 14",
+  "source_experiment": "EXP 14 : co-association ensemble (KMeans 9, Ward 9, GMM 14) -> K final 14",
   "dataset_images_total": 3961,
   "dataset_images_used": 2660,
   "dataset_images_dropped": 1301,

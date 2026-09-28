@@ -26,7 +26,7 @@ export default function ClusterTable() {
             setDesc(false);
           }
         }}
-        className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider transition-colors hover:text-amber"
+        className="inline-flex min-h-11 items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider transition-colors hover:text-amber sm:min-h-0"
         aria-label={`Urutkan menurut ${label}`}
       >
         {label}
