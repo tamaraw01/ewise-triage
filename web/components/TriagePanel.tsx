@@ -205,24 +205,34 @@ export default function TriagePanel() {
 
           {/* Form Upload & Citra Terpilih */}
           {!cameraActive && (
-            <div className="flex gap-4">
-              <div className="flex-1 relative border border-dashed border-edge p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-amber transition-colors">
+            <div className="flex flex-col gap-4">
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex-1 h-12 border border-edge bg-iron hover:bg-iron-hi flex items-center justify-center font-semibold text-xs tracking-wide text-bone"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  UNGGAH BERKAS
+                </button>
+                <button 
+                  onClick={startCamera}
+                  className="flex-1 h-12 border border-edge bg-iron hover:bg-iron-hi flex items-center justify-center font-semibold text-xs tracking-wide text-bone"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  BUKA KAMERA
+                </button>
+              </div>
+
+              <div className="relative border border-dashed border-edge p-6 flex flex-col items-center justify-center text-center">
                 <input
+                  ref={fileInputRef}
                   type="file"
                   accept="image/*"
                   onChange={handleFileChange}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  className="hidden"
                 />
-                <p className="text-sm font-semibold text-bone">Pilih atau seret foto kemari</p>
-                <p className="mt-1 text-xs text-bone-dim">Format JPG, PNG (Max 5MB)</p>
+                <p className="text-xs text-bone-dim">Pilih tombol di atas atau seret foto kemari (Format JPG, PNG)</p>
               </div>
-              <button 
-                onClick={startCamera}
-                className="w-16 flex-none border border-edge bg-iron hover:bg-iron-hi flex items-center justify-center"
-                title="Buka Kamera"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" className="text-bone-dim"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-              </button>
             </div>
           )}
 
