@@ -9,13 +9,23 @@ Endpoint:
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-import engine
+import engine_onnx
+
+# Jalur ONNX INT8 (~630 MB) dipakai bila berkas modelnya ada; kalau tidak,
+# jatuh ke jalur torch fp32 (~3,7 GB) yang hanya muat di mesin berRAM besar.
+if engine_onnx.tersedia():
+    engine = engine_onnx
+    BACKEND_ENGINE = "onnx-int8"
+else:
+    import engine as engine  # noqa: PLC0414
+    BACKEND_ENGINE = "torch-fp32"
 
 MAX_BYTES = 12 * 1024 * 1024
 ALLOWED = {"image/jpeg", "image/png", "image/webp", "image/bmp", "image/gif"}
@@ -34,6 +44,27 @@ _meta = json.loads((ART / "meta.json").read_text())
 _clusters = json.loads((ART / "clusters.json").read_text())
 
 
+@app.on_event("startup")
+def pramuat() -> None:
+    """Muat model sebelum melayani permintaan.
+
+    Memuat saat permintaan pertama membuat pengguna pertama menunggu hingga
+    dua menit dan kena batas waktu proksi (Cloudflare memutus di ~100 detik).
+    """
+    import threading
+
+    def kerjakan() -> None:
+        try:
+            engine.get_state()
+            logging.getLogger("ewise").info("Model siap (%s)", BACKEND_ENGINE)
+        except Exception:
+            logging.getLogger("ewise").exception("Pramuat model gagal")
+
+    # Di utas terpisah agar systemd tidak menganggap start-up menggantung;
+    # permintaan yang datang lebih awal tetap menunggu kunci di get_state().
+    threading.Thread(target=kerjakan, name="pramuat", daemon=True).start()
+
+
 @app.get("/")
 def root():
     return {
@@ -46,7 +77,11 @@ def root():
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "model_loaded": bool(engine._state)}
+    return {
+        "status": "ok",
+        "model_loaded": bool(engine._state),
+        "engine": BACKEND_ENGINE,
+    }
 
 
 @app.get("/clusters")

@@ -9,3 +9,12 @@ __pycache__/
 .DS_Store
 out/
 build/
+
+# Sisa ekspor ONNX: torch.onnx.export memecah bobot >2 GB jadi ratusan berkas
+# eksternal tanpa ekstensi. Model jadinya dibangun lokal, bukan diversikan.
+backend/artifacts/*.onnx
+backend/artifacts/conv1.weight
+backend/artifacts/ln_p*
+backend/artifacts/onnx__*
+backend/artifacts/proj
+backend/artifacts/transformer.*
