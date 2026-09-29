@@ -1,0 +1,28 @@
+[Unit]
+Description=E-WISE Triage Tunnel Watchdog (Cloudflare + sinkron Vercel)
+After=network-online.target ewise-backend.service
+Wants=network-online.target
+Requires=ewise-backend.service
+StartLimitIntervalSec=0
+
+[Service]
+User=aditama
+WorkingDirectory=/home/aditama/Projects/ewise-triage
+EnvironmentFile=/etc/ewise.env
+ExecStart=/home/aditama/Projects/ewise-triage/tunnel_watchdog.sh
+Restart=always
+RestartSec=10
+KillMode=mixed
+TimeoutStopSec=30
+
+# cloudflared dikunci ke core 0, tidak berbagi dengan backend (lihat
+# ewise-backend.service: AllowedCPUs=1-3). Torch menjenuhkan core untuk
+# inferensi berat, dan sebelumnya itu membuat cloudflared kelaparan giliran
+# proses sampai koneksi QUIC ke edge Cloudflare dianggap mati -> 502 pas
+# pengguna mengunggah gambar. CPUSchedulingPriority butuh privilese realtime
+# yang user biasa tidak punya (exit 214/SETSCHEDULER) -- dicabut, cukup
+# AllowedCPUs saja untuk memisahkan alokasi core.
+AllowedCPUs=0
+
+[Install]
+WantedBy=multi-user.target
