@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { API_BASE, fixed4, CLUSTERS_META, LANES } from "@/lib/data";
+import { fixed4, CLUSTERS_META, LANES } from "@/lib/data";
+import { resolveApiBase, backendSiap } from "@/lib/api";
 import { MarginMeter, StatusPill, IconWarn } from "./Primitives";
 import ClusterMap from "./ClusterMap";
 
@@ -133,11 +134,23 @@ export default function TriagePanel() {
     }, 400);
 
     try {
-      const base = API_BASE?.replace(/\/$/, "");
-      const res = await fetch(`${base}/predict`, {
-        method: "POST",
-        body: formData
-      });
+      // Alamat dicari saat dijalankan: tunnel berotasi, jadi nilai yang
+      // ditanam saat build bisa sudah mati di bundel yang sedang dipegang.
+      let base = await resolveApiBase();
+      if (!base) throw new Error("Alamat backend tidak ditemukan");
+
+      const kirim = (b: string) =>
+        fetch(`${b}/predict`, { method: "POST", body: formData });
+
+      let res: Response;
+      try {
+        res = await kirim(base);
+      } catch {
+        // Kegagalan jaringan biasanya berarti tunnel baru saja berotasi.
+        // Cari ulang alamatnya sekali, lalu kirim lagi.
+        base = await resolveApiBase();
+        res = await kirim(base);
+      }
       
       clearInterval(intv);
       setProgress(100);
@@ -179,15 +192,24 @@ export default function TriagePanel() {
   };
   const onDragOver = (e: React.DragEvent) => e.preventDefault();
 
-  // Ping backend 24/7 (prevent idle)
+  // Cari alamat backend sejak halaman dibuka, lalu jaga tetap panas.
+  // Memanaskan lebih dulu berarti unggahan pertama tidak menanggung
+  // biaya pemuatan model.
   useEffect(() => {
-    if (!API_BASE) return;
-    const base = API_BASE.replace(/\/$/, "");
-    const doPing = () => fetch(`${base}/health`).catch(() => {});
-    
-    doPing();
-    const iv = setInterval(doPing, 4 * 60 * 1000);
-    return () => clearInterval(iv);
+    let hidup = true;
+
+    const denyut = async () => {
+      const base = await resolveApiBase();
+      if (!hidup || !base) return;
+      await backendSiap(base);
+    };
+
+    denyut();
+    const iv = setInterval(denyut, 4 * 60 * 1000);
+    return () => {
+      hidup = false;
+      clearInterval(iv);
+    };
   }, []);
 
   return (

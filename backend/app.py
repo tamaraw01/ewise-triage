@@ -43,6 +43,10 @@ ART = Path(__file__).parent / "artifacts"
 _meta = json.loads((ART / "meta.json").read_text())
 _clusters = json.loads((ART / "clusters.json").read_text())
 
+# True hanya setelah satu inferensi nyata selesai. Pengawas tunnel menunggu
+# tanda ini, jadi ia tidak boleh menyala saat bobot baru sekadar termuat.
+_siap = False
+
 
 @app.on_event("startup")
 def pramuat() -> None:
@@ -54,11 +58,26 @@ def pramuat() -> None:
     import threading
 
     def kerjakan() -> None:
+        log = logging.getLogger("ewise")
         try:
             engine.get_state()
-            logging.getLogger("ewise").info("Model siap (%s)", BACKEND_ENGINE)
+            log.info("Bobot termuat (%s), memanaskan jalur inferensi", BACKEND_ENGINE)
+
+            # Memuat bobot saja tidak cukup. Lintasan pertama masih membayar
+            # alokasi buffer dan pemilihan kernel, dan itu jatuh ke pengguna
+            # pertama. Jalankan sekali di sini dengan citra sintetis.
+            import io
+
+            from PIL import Image
+
+            buf = io.BytesIO()
+            Image.new("RGB", (336, 336), (127, 127, 127)).save(buf, format="JPEG")
+            engine.classify(buf.getvalue())
+            global _siap
+            _siap = True
+            log.info("Pemanasan selesai, siap melayani")
         except Exception:
-            logging.getLogger("ewise").exception("Pramuat model gagal")
+            log.exception("Pramuat model gagal")
 
     # Di utas terpisah agar systemd tidak menganggap start-up menggantung;
     # permintaan yang datang lebih awal tetap menunggu kunci di get_state().
@@ -79,7 +98,7 @@ def root():
 def health():
     return {
         "status": "ok",
-        "model_loaded": bool(engine._state),
+        "model_loaded": _siap,
         "engine": BACKEND_ENGINE,
     }
 

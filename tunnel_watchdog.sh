@@ -93,8 +93,27 @@ nyalakan_tunnel() {
   return 1
 }
 
+terbitkan_penunjuk() {
+  # Frontend membaca berkas ini saat dijalankan, jadi browser yang masih
+  # memegang bundel lama tetap menemukan alamat baru tanpa menunggu rebuild.
+  local url="$1"
+  printf '%s\n' "$url" > "$PROJECT_DIR/api_base.txt"
+  ( cd "$PROJECT_DIR" || return 1
+    git add api_base.txt >/dev/null 2>&1
+    git -c user.name="ewise-watchdog" -c user.email="watchdog@localhost" \
+      commit -q -m "Alamat backend: $url" >/dev/null 2>&1
+    git push -q origin master >/dev/null 2>&1
+  ) && catat "penunjuk diterbitkan: $url" \
+    || catat "GAGAL menerbitkan penunjuk (frontend jatuh ke nilai build)"
+}
+
 sinkron_vercel() {
   local url="$1"
+
+  # Diterbitkan lebih dulu: penunjuk berlaku dalam detik, sedangkan rebuild
+  # Vercel butuh menit. Pengguna tidak perlu menunggu build selesai.
+  terbitkan_penunjuk "$url"
+
   if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
     catat "LEWAT sinkron Vercel: kredensial belum diatur di /etc/ewise.env"
     return 1

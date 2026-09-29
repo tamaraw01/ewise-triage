@@ -9,6 +9,7 @@ from __future__ import annotations
 import io
 import json
 import logging
+import os
 import threading
 from pathlib import Path
 
@@ -53,7 +54,9 @@ def _muat_hemat(device: str) -> tuple[torch.nn.Module, object]:
     import open_clip
     from safetensors.torch import safe_open
 
-    torch.set_num_threads(4)
+    # Satu core disisakan untuk uvicorn dan OS; memakai semua core justru
+    # membuat thread berebut dan permintaan pertama makin lambat.
+    torch.set_num_threads(max(1, (os.cpu_count() or 4) - 1))
 
     # Bangun arsitektur kosong (tanpa bobot), hanya menara visual.
     model, _, preprocess = open_clip.create_model_and_transforms(
