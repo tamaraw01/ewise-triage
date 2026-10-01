@@ -5,7 +5,7 @@ atau mengunggah satu foto, dan sistem mengembalikan klaster terdekat beserta
 jalur penanganannya. Bila keyakinannya tipis, sistem menolak memberi label dan
 menyerahkan keputusan ke manusia.
 
-Semua angka pada antarmuka berasal dari artefak eksperimen EXP 14, bukan contoh
+Semua angka pada antarmuka berasal dari artefak eksperimen Evaluasi Internal, bukan contoh
 karangan.
 
 ## Cara kerja
@@ -18,7 +18,7 @@ kamera / berkas  ->  CLIP ViT-H/14  ->  normalisasi L2
 ```
 
 Pengelompokan tidak dijalankan ulang saat inference. Centroid dihitung sekali
-dari hasil EXP 14, lalu citra baru hanya dibandingkan ke centroid itu, sehingga
+dari hasil Evaluasi Internal, lalu citra baru hanya dibandingkan ke centroid itu, sehingga
 satu putusan adalah satu perkalian matriks.
 
 ## Angka acuan
@@ -27,7 +27,7 @@ satu putusan adalah satu perkalian matriks.
 |---|---|
 | Citra acuan | 2.660 dari 3.961 |
 | Klaster final | 14 (konsensus KMeans 9, Ward 9, GMM 14) |
-| Akurasi label EXP 14 | 87,78% |
+| Akurasi label Evaluasi Internal | 87,78% |
 | Kesepakatan klaster leave-one-out | 95,94% |
 | Akurasi label leave-one-out | 86,62% |
 | Ambang margin | 0,0297 (persentil 5 leave-one-out) |
@@ -98,5 +98,5 @@ dari label kelas, bukan rekomendasi kepatuhan regulasi.
 
 ## Sumber
 
-Artefak berasal dari notebook EXP 14 (`cluster-14`) dan pembandingan skenario
+Artefak berasal dari notebook Evaluasi Internal (`cluster-14`) dan pembandingan skenario
 (`cluster-15`), Big Data Challenge Satria Data 2026.

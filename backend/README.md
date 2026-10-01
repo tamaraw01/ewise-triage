@@ -27,7 +27,7 @@ tanpa label, bukan sebagai tebakan.
 
 ## Asal angka
 
-Centroid dihitung dari 2.660 embedding CLIP citra dataset BDC 2026
+Centroid dihitung dari 2.660 embedding CLIP citra dataset 2026
 (`1_Electronic`, disaring 10 kelas berdasar prefix nama berkas).
 Ambang margin 0,0297 adalah persentil 5 margin leave-one-out pada 2.660 citra
 tersebut. Validasi leave-one-out: kesepakatan klaster 95,94%, akurasi label 86,62%.
