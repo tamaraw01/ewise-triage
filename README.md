@@ -2,8 +2,7 @@
 
 Konsol triase citra limbah elektronik. Petugas mengarahkan kamera ke satu barang
 atau mengunggah satu foto, dan sistem mengembalikan klaster terdekat beserta
-jalur penanganannya. Bila keyakinannya tipis, sistem menolak memberi label dan
-menyerahkan keputusan ke manusia.
+jalur penanganannya. Jika margin keyakinan di bawah ambang batas kritis, sistem memveto label otomatis dan mengekskalasi keputusan ke operator manusia.
 
 Semua angka pada antarmuka berasal dari artefak eksperimen Evaluasi Internal, bukan contoh
 karangan.
@@ -32,13 +31,13 @@ satu putusan adalah satu perkalian matriks.
 | Akurasi label leave-one-out | 86,62% |
 | Ambang margin | 0,0297 (persentil 5 leave-one-out) |
 
-Ambang bukan angka pilihan bebas: ia adalah persentil 5 dari sebaran margin pada
+Ambang batas ini bukan angka absolut: nilainya adalah persentil 5 dari sebaran margin pada
 validasi leave-one-out, sehingga sekitar 5% kasus tersulit diarahkan ke
 pemeriksaan manusia.
 
 Dua klaster tercatat terbantah dan tetap ditampilkan apa adanya: C11 diberi label
 `Mobile` padahal 242 dari 243 citranya `Player`, dan C9 bermargin 0,0078 dengan
-isi campuran. Keduanya menjelaskan mengapa ambang margin diperlukan.
+isi campuran. Anomali struktural ini mendemonstrasikan urgensi mekanisme ekskalasi berdasarkan ambang margin.
 
 ## Menjalankan
 
@@ -98,5 +97,4 @@ dari label kelas, bukan rekomendasi kepatuhan regulasi.
 
 ## Sumber
 
-Artefak berasal dari notebook Evaluasi Internal (`cluster-14`) dan pembandingan skenario
-(`cluster-15`), Big Data Challenge Satria Data 2026.
+Artefak diekstraksi dari pipeline klasterisasi primer (`cluster-14`) dan pembandingan skenario resolusi tinggi (`cluster-15`).
