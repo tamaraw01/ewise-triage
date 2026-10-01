@@ -140,7 +140,7 @@ export default function TriagePanel() {
       if (!base) throw new Error("Alamat backend tidak ditemukan");
 
       const kirim = (b: string) =>
-        fetch(`${b}/predict`, { method: "POST", body: formData });
+        fetch(`${b}/predict`, { method: "POST", body: formData, headers: { "ngrok-skip-browser-warning": "true" } });
 
       let res: Response;
       try {
