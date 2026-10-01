@@ -1,1 +1,1 @@
-https://rep-polo-nearest-occupational.trycloudflare.com
+https://api.trycloudflare.com
