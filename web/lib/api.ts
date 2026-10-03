@@ -17,7 +17,7 @@ export async function submitToBackend(file: File) {
     const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data: [base64] })
+        body: JSON.stringify({ data: [{ url: base64, meta: { _type: "gradio.FileData" } }] })
     });
 
     if (!res.ok) throw new Error("Gagal terhubung ke backend HF");
