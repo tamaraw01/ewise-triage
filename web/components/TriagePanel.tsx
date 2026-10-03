@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fixed4, CLUSTERS_META, LANES } from "@/lib/data";
-import { resolveApiBase, backendSiap } from "@/lib/api";
+import { resolveApiBase, backendSiap, submitToBackend } from "@/lib/api";
 import { MarginMeter, StatusPill, IconWarn } from "./Primitives";
 import ClusterMap from "./ClusterMap";
 
@@ -126,43 +126,18 @@ export default function TriagePanel() {
     setError("");
     setProgress(0);
 
-    const formData = new FormData();
-    formData.append("file", file);
-
     const intv = setInterval(() => {
       setProgress(p => Math.min(p + (Math.random() * 15), 90));
     }, 400);
 
     try {
-      // Alamat dicari saat dijalankan: tunnel berotasi, jadi nilai yang
-      // ditanam saat build bisa sudah mati di bundel yang sedang dipegang.
-      let base = await resolveApiBase();
-      if (!base) throw new Error("Alamat backend tidak ditemukan");
+      const data = await submitToBackend(file);
 
-      const kirim = (b: string) =>
-        fetch(`${b}/predict`, { method: "POST", body: formData, headers: { "ngrok-skip-browser-warning": "true" } });
-
-      let res: Response;
-      try {
-        res = await kirim(base);
-      } catch {
-        // Kegagalan jaringan biasanya berarti tunnel baru saja berotasi.
-        // Cari ulang alamatnya sekali, lalu kirim lagi.
-        base = await resolveApiBase();
-        res = await kirim(base);
-      }
-      
       clearInterval(intv);
       setProgress(100);
 
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || res.statusText);
-      }
-
-      const data = await res.json();
       setTimeout(() => {
-        setResult(data);
+        setResult(data as Prediction);
         setPhase("done");
       }, 500);
 
