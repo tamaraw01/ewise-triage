@@ -37,7 +37,6 @@ function Explorer() {
         <dl className="facts"><div><dt>Nama prediksi zero-shot</dt><dd>{cluster.name}</dd></div><div><dt>Jumlah citra riset</dt><dd>{cluster.n}</dd></div><div><dt>Kelas dominan hasil audit / kemurnian</dt><dd>{cluster.dom} / {cluster.pur.toLocaleString('id-ID')}%</dd></div><div><dt>Similaritas zero-shot</dt><dd>{fixed4(cluster.sim)}</dd></div><div><dt>Margin penamaan zero-shot</dt><dd>{fixed4(cluster.zs)}</dd></div><div><dt>Jalur</dt><dd>{cluster.lane} · {LANES[cluster.lane].desc}</dd></div></dl>
         <p><strong>Material: </strong>{cluster.material}</p><p>{cluster.action}</p>{cluster.hazard && <p className="caveat">Perhatian: {cluster.hazard}. Ikuti SOP dan gunakan petugas terlatih.</p>}
       </div></div>
-    <p className="source">Sumber: lib/data.ts · Margin penamaan zero-shot berbeda dari margin inferensi citra. Kemurnian bukan probabilitas prediksi.</p>
   </section>;
 }
 
