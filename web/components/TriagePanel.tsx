@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { fixed4, CLUSTERS_META, LANES } from "@/lib/data";
 import { resolveApiBase, backendSiap, submitToBackend } from "@/lib/api";
 import { MarginMeter, StatusPill, IconWarn } from "./Primitives";
+import ClusterMap from "./ClusterMap";
 import { automaticLane, candidateLabel, manualReason, parsePrediction } from "@/lib/session";
 
 type ZeroShot = { label: string; similarity: number };
@@ -272,8 +273,10 @@ export default function TriagePanel() {
             <span className="text-[10px] font-mono text-amber">BACKEND</span>
           </div>
           <div className="relative mt-4">
-            <p className="p-4 text-bone">Citra dikirim. Menunggu respons backend; waktu selesai belum diketahui.</p>
-
+            <ClusterMap scanning />
+            <div className="absolute inset-x-0 bottom-4 text-center text-amber text-xs font-mono animate-pulse">
+              Memproses citra dan mencari klaster terdekat...
+            </div>
           </div>
         </div>
       )}
