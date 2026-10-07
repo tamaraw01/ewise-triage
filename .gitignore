@@ -35,3 +35,5 @@ backend/logs/
 kaggle_quant/
 *.log
 web/README.md
+web/AGENTS.md
+web/CLAUDE.md

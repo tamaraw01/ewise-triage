@@ -1,4 +1,4 @@
-import scatterRaw from "@/data/scatter.json";
+import scatterRaw from "../data/scatter.json";
 
 export type ScatterPoint = {
   x: number;

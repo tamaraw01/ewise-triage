@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { fixed4, CLUSTERS_META, LANES } from "@/lib/data";
 import { resolveApiBase, backendSiap, submitToBackend } from "@/lib/api";
 import { MarginMeter, StatusPill, IconWarn } from "./Primitives";
-import ClusterMap from "./ClusterMap";
+import { automaticLane, candidateLabel, manualReason, parsePrediction } from "@/lib/session";
 
 type ZeroShot = { label: string; similarity: number };
 
@@ -35,18 +35,20 @@ export default function TriagePanel() {
   const [result, setResult] = useState<Prediction | null>(null);
   const [error, setError] = useState("");
   
-  // Fake progress
-  const [progress, setProgress] = useState(0);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
+
   const videoRef = useRef<HTMLVideoElement>(null);
+  const request = useRef<AbortController | null>(null);
+  useEffect(() => () => request.current?.abort(), []);
   const [cameraActive, setCameraActive] = useState(false);
 
   const reset = useCallback(() => {
+    request.current?.abort();
     setPhase("idle");
     setResult(null);
     setError("");
-    setProgress(0);
+
     if (previewUrl && previewUrl.startsWith("blob:")) {
       URL.revokeObjectURL(previewUrl);
     }
@@ -79,7 +81,7 @@ export default function TriagePanel() {
           videoRef.current.srcObject = stream;
         }
       }, 50);
-    } catch (err) {
+    } catch {
       alert("Kamera tidak dapat diakses. Gunakan upload berkas.");
     }
   };
@@ -111,7 +113,7 @@ export default function TriagePanel() {
       setPhase("idle");
       setResult(null);
       setError("");
-      setProgress(0);
+  
       setFile(shot);
       setPreviewUrl(URL.createObjectURL(shot));
       stopCamera();
@@ -121,29 +123,21 @@ export default function TriagePanel() {
   const submitAnalysis = useCallback(async () => {
     if (!file) return;
 
+    request.current?.abort();
+    const controller = new AbortController();
+    request.current = controller;
     setPhase("loading");
     setResult(null);
     setError("");
-    setProgress(0);
-
-    const intv = setInterval(() => {
-      setProgress(p => Math.min(p + (Math.random() * 15), 90));
-    }, 400);
-
     try {
-      const data = await submitToBackend(file);
-
-      clearInterval(intv);
-      setProgress(100);
-
-      setTimeout(() => {
-        setResult(data as Prediction);
-        setPhase("done");
-      }, 500);
-
-    } catch (err: any) {
-      clearInterval(intv);
-      setError(err.message || "Gagal menghubungi backend");
+      const data = await submitToBackend(file, controller.signal);
+      if (controller.signal.aborted) return;
+      parsePrediction(data);
+      setResult(data as Prediction);
+      setPhase("done");
+    } catch (err: unknown) {
+      if (controller.signal.aborted) return;
+      setError(err instanceof Error ? err.message : "Gagal menghubungi backend");
       setPhase("error");
     }
   }, [file]);
@@ -159,7 +153,7 @@ export default function TriagePanel() {
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const dropped = e.dataTransfer.files?.[0];
-    if (dropped && dropped.type.startsWith("image/")) {
+    if (phase !== "loading" && dropped && dropped.type.startsWith("image/")) {
       reset();
       setFile(dropped);
       setPreviewUrl(URL.createObjectURL(dropped));
@@ -189,6 +183,7 @@ export default function TriagePanel() {
 
   return (
     <div className="flex flex-col gap-6">
+      <p className="sr-only" role="status" aria-live="polite">{phase === "loading" ? "Citra dikirim, menunggu backend." : phase === "done" ? "Hasil triase tersedia." : phase === "error" ? `Gagal: ${error}` : ""}</p>
       
       {/* Kolom Console Kiri: Input */}
       <div className="panel" onDrop={onDrop} onDragOver={onDragOver}>
@@ -229,20 +224,24 @@ export default function TriagePanel() {
           {/* Form Upload & Citra Terpilih */}
           {!cameraActive && (
             <div className="flex gap-4">
-              <div className="flex-1 relative border border-dashed border-edge p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-amber transition-colors">
+              <div className="flex-1 relative border border-dashed border-bone-dim p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-amber focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-amber transition-colors">
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
+                  aria-label="Pilih citra untuk triase"
+                  disabled={phase === "loading"}
                   onChange={handleFileChange}
                   className="absolute inset-0 opacity-0 cursor-pointer"
                 />
                 <p className="text-sm font-semibold text-bone">Pilih atau seret foto kemari</p>
-                <p className="mt-1 text-xs text-bone-dim">Format JPG atau PNG</p>
+                <p className="mt-1 text-xs text-bone-dim">JPG, PNG, atau WebP · maksimal 3 MB</p>
               </div>
               <button 
                 onClick={startCamera}
-                className="w-16 flex-none border border-edge bg-iron hover:bg-iron-hi flex items-center justify-center"
+                className="w-16 flex-none border border-bone-dim bg-iron hover:bg-iron-hi flex items-center justify-center"
                 title="Buka Kamera"
+                disabled={phase === "loading"}
+                aria-label="Buka Kamera"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" className="text-bone-dim"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
               </button>
@@ -270,15 +269,11 @@ export default function TriagePanel() {
             <h3 className="text-sm font-semibold tracking-wide text-amber">
               Mencari centroid terdekat...
             </h3>
-            <span className="text-[10px] font-mono text-amber">UMAP 2D RADAR</span>
+            <span className="text-[10px] font-mono text-amber">BACKEND</span>
           </div>
           <div className="relative mt-4">
-            <ClusterMap scanning={true} />
-            <div className="absolute inset-x-0 bottom-4 text-center text-amber text-xs font-mono animate-pulse">
-              {progress < 40 ? "Mengekstrak ViT-H/14 embeddings..." : 
-               progress < 80 ? "Mencari centroid terdekat di UMAP..." : 
-               "Menyimpulkan zero-shot semantic margin..."}
-            </div>
+            <p className="p-4 text-bone">Citra dikirim. Menunggu respons backend; waktu selesai belum diketahui.</p>
+
           </div>
         </div>
       )}
@@ -310,14 +305,14 @@ export default function TriagePanel() {
 function ResultCard({ data, onReset }: { data: Prediction; onReset: () => void }) {
   const cMeta = CLUSTERS_META[data.cluster.id];
   // Kalau backend mengirim id di luar tabel, turunkan ke peninjauan manual daripada crash
-  const auto = data.status === "classified" && Boolean(cMeta);
+  const auto = automaticLane(data) !== "MR";
   const laneKey = auto ? cMeta.lane : 'MR';
   const lane = LANES[laneKey];
   
   const reason = !auto
-    ? data.runner_up?.label
+    ? manualReason(data) || (data.runner_up?.label
       ? `${data.cluster.handling}. Kandidat kedua C${data.runner_up.id} (${data.runner_up.label}) terlalu rapat.`
-      : data.cluster.handling
+      : data.cluster.handling)
     : '';
 
   const fillColorClass = auto ? 'var(--amber)' : 'var(--bone-dim)';
@@ -339,7 +334,7 @@ function ResultCard({ data, onReset }: { data: Prediction; onReset: () => void }
         <p className="res-sub text-bone-dim mt-1">
           {auto
             ? cMeta.sub
-            : `Kandidat terdekat: C${data.cluster.id} (label zero-shot: ${data.cluster.label})`}
+            : `Kandidat terdekat: C${data.cluster.id} (kandidat: ${candidateLabel(data) ?? 'tidak tersedia'})`}
         </p>
 
         <div className="grid sm:grid-cols-2 gap-4 mt-4">

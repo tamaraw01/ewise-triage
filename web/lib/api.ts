@@ -5,7 +5,11 @@
 //    (anonim sangat dibatasi dan memicu "ZeroGPU quota exceeded").
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://aditams-ewise-backend.hf.space";
 
-export async function submitToBackend(file: File) {
+import { validateFile } from './session';
+
+export async function submitToBackend(file: File, signal?: AbortSignal) {
+    const error = validateFile(file);
+    if (error) throw new Error(error);
     const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result as string);
@@ -16,6 +20,7 @@ export async function submitToBackend(file: File) {
     const res = await fetch("/api/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal,
         body: JSON.stringify({ data: [{ url: base64, meta: { _type: "gradio.FileData" } }] }),
     });
 
@@ -29,4 +34,4 @@ export async function submitToBackend(file: File) {
 
 export function currentApiBase() { return API_BASE; }
 export async function resolveApiBase() { return API_BASE; }
-export async function backendSiap(_base?: string) { return true; }
+export async function backendSiap(base?: string) { return Boolean(base); }
