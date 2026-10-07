@@ -8,17 +8,17 @@ export default function Page() {
       <div className="w-full max-w-4xl space-y-8">
         <header className="flex items-center justify-between border-b border-[var(--border)] pb-6">
           <h1 className="text-xl font-bold tracking-tight text-white">
-            E-WISE Triase
+            E-WISE
           </h1>
           <p className="text-sm font-mono text-[var(--muted-foreground)]">
-            VI-TH-14 ZERO-SHOT
+            ViT-H/14 · ZERO-SHOT
           </p>
         </header>
 
         <TriagePanel />
         
         <footer className="pt-12 text-xs font-mono text-[var(--muted-foreground)] text-center">
-          Sistem inferensi e-waste otomatis. Mengelompokkan citra tanpa pengawasan.
+          Sistem inferensi e-waste otomatis. Pengelompokan citra tanpa label.
         </footer>
       </div>
     </main>

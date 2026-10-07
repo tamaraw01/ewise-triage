@@ -1,5 +1,5 @@
 ---
-title: E-WISE Triage API
+title: E-WISE API
 emoji: "🔌"
 colorFrom: gray
 colorTo: yellow
@@ -8,7 +8,7 @@ app_port: 7860
 pinned: false
 ---
 
-# E-WISE Triage API
+# E-WISE API
 
 Backend inference untuk konsol triase limbah elektronik.
 

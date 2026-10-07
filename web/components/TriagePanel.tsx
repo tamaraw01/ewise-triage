@@ -237,7 +237,7 @@ export default function TriagePanel() {
                   className="absolute inset-0 opacity-0 cursor-pointer"
                 />
                 <p className="text-sm font-semibold text-bone">Pilih atau seret foto kemari</p>
-                <p className="mt-1 text-xs text-bone-dim">Format JPG, PNG (Max 5MB)</p>
+                <p className="mt-1 text-xs text-bone-dim">Format JPG atau PNG</p>
               </div>
               <button 
                 onClick={startCamera}

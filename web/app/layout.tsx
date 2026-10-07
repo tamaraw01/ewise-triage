@@ -17,9 +17,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "E-WISE Triage",
+  title: "E-WISE",
   description:
-    "Konsol triase citra limbah elektronik berbasis 14 klaster CLIP ViT-H/14 dari 2.660 citra dataset  2026.",
+    "Konsol triase citra limbah elektronik berbasis 14 klaster CLIP ViT-H/14 dari 2.660 citra e-waste.",
 };
 
 export const viewport: Viewport = {

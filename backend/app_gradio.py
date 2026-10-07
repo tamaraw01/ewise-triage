@@ -39,8 +39,8 @@ def get_clusters():
         # Fallback if engine is completely missing in ONNX only mode
         return json.dumps({"error": "Clusters metadata unavailable in strict ONNX mode"})
 
-with gr.Blocks(title="E-WISE Triage API") as demo:
-    gr.Markdown("# E-WISE Triage Headless API\nThis Space is designed to act as an API backend. Use the Gradio API endpoints to communicate with it.")
+with gr.Blocks(title="E-WISE API") as demo:
+    gr.Markdown("# E-WISE Headless API\nThis Space is designed to act as an API backend. Use the Gradio API endpoints to communicate with it.")
     
     with gr.Tab("Predict"):
         img_input = gr.Image(type="pil", label="Upload E-Waste Image")

@@ -1,4 +1,4 @@
-"""Mesin inference E-WISE Triage.
+"""Mesin inference E-WISE.
 
 Rantai: citra -> CLIP ViT-H/14 -> L2 -> cosine ke 14 centroid klaster (EXP 14)
 -> klaster terdekat -> label zero-shot klaster + margin top1-top2.

@@ -18,3 +18,20 @@ backend/artifacts/ln_p*
 backend/artifacts/onnx__*
 backend/artifacts/proj
 backend/artifacts/transformer.*
+.env*
+
+# Internal: catatan desain, skrip deploy lokal, log, eksperimen Kaggle
+DESIGN.md
+api_base.txt
+start_tunnel.sh
+tunnel_watchdog.sh
+deploy/
+railway.json
+render.yaml
+update_readme.py
+backend/upload_to_hf.py
+backend/huggingface_setup.md
+backend/logs/
+kaggle_quant/
+*.log
+web/README.md

@@ -1,4 +1,4 @@
-"""E-WISE Triage API: Hugging Face Space (Docker, FastAPI).
+"""E-WISE API: Hugging Face Space (Docker, FastAPI).
 
 Endpoint:
   GET  /            info ringkas
@@ -30,7 +30,7 @@ else:
 MAX_BYTES = 12 * 1024 * 1024
 ALLOWED = {"image/jpeg", "image/png", "image/webp", "image/bmp", "image/gif"}
 
-app = FastAPI(title="E-WISE Triage API", version="1.0.0")
+app = FastAPI(title="E-WISE API", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -87,7 +87,7 @@ def pramuat() -> None:
 @app.get("/")
 def root():
     return {
-        "service": "E-WISE Triage API",
+        "service": "E-WISE API",
         "backbone": _meta["backbone"],
         "clusters": _meta["inference_validation"]["n_clusters"],
         "endpoints": ["/health", "/clusters", "/predict"],

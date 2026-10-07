@@ -1,4 +1,4 @@
-"""Mesin inference E-WISE Triage, jalur ONNX Runtime (tanpa torch).
+"""Mesin inference E-WISE, jalur ONNX Runtime (tanpa torch).
 
 Rantai identik dengan engine.py: citra -> CLIP ViT-H/14 (menara visual, ONNX INT8)
 -> L2 -> cosine ke 14 centroid klaster (EXP 14) -> label zero-shot + margin top1-top2.
