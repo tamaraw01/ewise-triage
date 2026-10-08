@@ -23,7 +23,7 @@ export default function Page() {
       </section>}
       {section === 'Cluster Explorer' && <Explorer />}
     </div>
-    <footer className="dashboard-footer">Pendukung keputusan berbasis citra. Penanganan akhir memerlukan verifikasi petugas sesuai SOP fasilitas.</footer>
+    <footer className="dashboard-footer">© 2026 E-WISE</footer>
   </main>;
 }
 
