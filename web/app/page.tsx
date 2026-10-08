@@ -14,7 +14,7 @@ const research = researchSubset();
 export default function Page() {
   const [section, setSection] = useState<string>('Konsol');
   return <main className="dashboard">
-    <header className="dashboard-header"><div><h1>E-WISE</h1><p>Konsol triase limbah elektronik</p></div><span className="num">CLIP ViT-H/14</span></header>
+    <header className="dashboard-header"><div><h1>E-WISE</h1><p>E-Waste Intelligent Sorting &amp; Exploration</p></div><span className="num text-bone-dim">CLIP ViT-H/14</span></header>
     <nav className="dashboard-nav" aria-label="Bagian dashboard">{sections.map(name => <button key={name} aria-current={section === name ? 'page' : undefined} onClick={() => setSection(name)}>{name}</button>)}</nav>
     <div id="konten" tabIndex={-1}>
       {section === 'Konsol' && <section aria-label="Konsol triase"><TriagePanel />
@@ -23,7 +23,7 @@ export default function Page() {
       </section>}
       {section === 'Cluster Explorer' && <Explorer />}
     </div>
-    <footer className="dashboard-footer">Keputusan penanganan harus dikonfirmasi petugas sesuai SOP fasilitas. Prediksi citra tidak memverifikasi bahan atau kondisi perangkat.</footer>
+    <footer className="dashboard-footer">Pendukung keputusan berbasis citra. Penanganan akhir memerlukan verifikasi petugas sesuai SOP fasilitas.</footer>
   </main>;
 }
 
