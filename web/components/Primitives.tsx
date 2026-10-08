@@ -1,4 +1,3 @@
-import { ReactNode } from "react";
 import { fixed4 } from "@/lib/data";
 
 export function MarginMeter({ margin, threshold, colorClass }: { margin: number; threshold: number; colorClass: string }) {
@@ -7,45 +6,17 @@ export function MarginMeter({ margin, threshold, colorClass }: { margin: number;
   const tickL = Math.min(threshold / scaleMax, 1) * 100;
 
   return (
-    <div className="mt-2">
+    <div>
       <div className="meter" role="img" aria-label={`Margin ${fixed4(margin)} terhadap ambang ${fixed4(threshold)}`}>
         <span className="fill" style={{ width: `${fillW}%`, backgroundColor: colorClass }}></span>
         <span className="tick" style={{ left: `calc(${tickL}% - 1px)` }} title={`Ambang ${fixed4(threshold)}`}></span>
       </div>
+      <div className="ticks" aria-hidden="true" />
       <div className="meter-scale">
         <span>0</span>
         <span>ambang {fixed4(threshold)}</span>
         <span>0,20</span>
       </div>
-    </div>
-  );
-}
-
-export function PipelineSteps({ activeStep }: { activeStep: number }) {
-  const STEPS = [
-    ['Input gambar', 'Foto diterima backend'],
-    ['Ekstraksi fitur', 'CLIP ViT-H/14 → vektor L2'],
-    ['Pemetaan cluster', 'Cosine similarity ke 14 centroid'],
-    ['Validasi margin', 'Selisih skor top-1 vs top-2'],
-    ['Keputusan', 'Cluster, margin, tindakan']
-  ];
-
-  return (
-    <div className="steps">
-      {STEPS.map((s, i) => {
-        let st = '';
-        if (i < activeStep) st = 'done';
-        else if (i === activeStep) st = 'run';
-        
-        return (
-          <div key={i} className={`step ${st}`}>
-            <div className="bar"><i /></div>
-            <span className="n">0{i + 1}</span>
-            <b>{s[0]}</b>
-            <small>{s[1]}</small>
-          </div>
-        );
-      })}
     </div>
   );
 }

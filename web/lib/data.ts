@@ -20,14 +20,13 @@ export interface LaneDef {
   code: LaneCode;
   name: string;
   desc: string;
-  color: string;
 }
 
 export const LANES: Record<LaneCode, LaneDef> = {
-  P1: { code: 'P1', name: 'Jalur Prioritas 1', desc: 'Penanganan bahan berbahaya', color: 'var(--lane1)' },
-  P2: { code: 'P2', name: 'Jalur Prioritas 2', desc: 'High-Value Harvesting', color: 'var(--lane2)' },
-  P3: { code: 'P3', name: 'Jalur Prioritas 3', desc: 'Pembongkaran & pemulihan material', color: 'var(--lane3)' },
-  MR: { code: 'MR', name: 'Peninjauan manual', desc: 'Diperiksa petugas', color: 'var(--laneM)' }
+  P1: { code: 'P1', name: 'Jalur Prioritas 1', desc: 'Penanganan bahan berbahaya' },
+  P2: { code: 'P2', name: 'Jalur Prioritas 2', desc: 'High-Value Harvesting' },
+  P3: { code: 'P3', name: 'Jalur Prioritas 3', desc: 'Pembongkaran & pemulihan material' },
+  MR: { code: 'MR', name: 'Peninjauan manual', desc: 'Diperiksa petugas' }
 };
 
 export interface ClusterMeta {

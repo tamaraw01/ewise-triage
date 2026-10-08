@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fixed4, CLUSTERS_META, LANES } from "@/lib/data";
+import { fixed4, CLUSTERS_META, LANES, type LaneCode } from "@/lib/data";
 import { resolveApiBase, backendSiap, submitToBackend } from "@/lib/api";
 import { MarginMeter, StatusPill, IconWarn } from "./Primitives";
 import ClusterMap from "./ClusterMap";
@@ -83,7 +83,8 @@ export default function TriagePanel() {
         }
       }, 50);
     } catch {
-      alert("Kamera tidak dapat diakses. Gunakan upload berkas.");
+      setError("Kamera tidak dapat diakses. Pilih berkas foto sebagai gantinya.");
+      setPhase("error");
     }
   };
 
@@ -182,228 +183,146 @@ export default function TriagePanel() {
     };
   }, []);
 
+  const busy = phase === "loading";
+
   return (
-    <div className="flex flex-col gap-6">
-      <p className="sr-only" role="status" aria-live="polite">{phase === "loading" ? "Citra dikirim, menunggu backend." : phase === "done" ? "Hasil triase tersedia." : phase === "error" ? `Gagal: ${error}` : ""}</p>
-      
-      {/* Kolom Console Kiri: Input */}
-      <div className="panel" onDrop={onDrop} onDragOver={onDragOver}>
-        <div className="panel-h">
-          <h2 className="text-sm font-semibold tracking-wide text-bone">CONSOLE</h2>
-          <span className="text-[10px] font-mono text-bone-dim">INPUT C-2</span>
-        </div>
-        
-        <div className="panel-b mt-4">
-          
-          {/* Kamera View (Opsional) */}
-          {cameraActive && (
-            <div className="relative border border-edge bg-void overflow-hidden flex flex-col">
-              <video 
-                ref={videoRef} 
-                autoPlay 
-                playsInline 
-                className="w-full h-auto bg-void"
-                style={{ maxHeight: "300px", objectFit: "cover" }}
-              />
-              <div className="absolute inset-x-0 bottom-0 p-3 bg-void/80 flex justify-center gap-4">
-                <button 
-                  onClick={capturePhoto}
-                  className="h-10 px-6 border border-amber bg-amber/20 text-amber font-semibold text-xs tracking-wide"
-                >
-                  Jepret
-                </button>
-                <button 
-                  onClick={stopCamera}
-                  className="h-10 px-6 border border-edge bg-iron text-bone font-semibold text-xs tracking-wide"
-                >
-                  Batal
-                </button>
+    <div className="console">
+      <p className="sr-only" role="status" aria-live="polite">{busy ? "Citra dikirim, menunggu backend." : phase === "done" ? "Hasil triase tersedia." : phase === "error" ? `Gagal: ${error}` : ""}</p>
+
+      <section className="panel" aria-labelledby="input-title" onDrop={onDrop} onDragOver={onDragOver}>
+        <div className="panel-h"><h2 id="input-title">Citra barang</h2><span className="num spec">JPG · PNG · WebP ≤ 3 MB</span></div>
+        <div className="ticks" aria-hidden="true" />
+        <div className="panel-b">
+          {cameraActive ? (
+            <div className="camera">
+              <video ref={videoRef} autoPlay playsInline muted aria-label="Pratinjau kamera" />
+              <div className="camera-actions">
+                <button type="button" className="btn btn-primary" onClick={capturePhoto}>Ambil foto</button>
+                <button type="button" className="btn" onClick={stopCamera}>Batal</button>
               </div>
             </div>
+          ) : (
+            <div className={`drop${previewUrl ? " has-image" : ""}`}>
+              <input type="file" accept="image/jpeg,image/png,image/webp" aria-label="Pilih citra untuk triase" disabled={busy} onChange={handleFileChange} />
+              {previewUrl
+                ? <img src={previewUrl} alt="Citra yang sedang ditriase" />
+                : <div className="drop-copy"><b>Pilih atau seret foto ke sini</b><span>Satu barang per foto, latar polos lebih baik.</span></div>}
+            </div>
           )}
-
-          {/* Form Upload & Citra Terpilih */}
           {!cameraActive && (
-            <div className="flex gap-4">
-              <div className="flex-1 relative border border-dashed border-bone-dim p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-amber focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-amber transition-colors">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  aria-label="Pilih citra untuk triase"
-                  disabled={phase === "loading"}
-                  onChange={handleFileChange}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                />
-                <p className="text-sm font-semibold text-bone">Pilih atau seret foto kemari</p>
-                <p className="mt-1 text-xs text-bone-dim">JPG, PNG, atau WebP · maksimal 3 MB</p>
-              </div>
-              <button 
-                onClick={startCamera}
-                className="w-16 flex-none border border-bone-dim bg-iron hover:bg-iron-hi flex items-center justify-center"
-                title="Buka Kamera"
-                disabled={phase === "loading"}
-                aria-label="Buka Kamera"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" className="text-bone-dim"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <div className="capture-bar">
+              <span className="num">{file ? `${file.name} · ${(file.size / 1024).toFixed(0)} KB` : "Belum ada citra"}</span>
+              <button type="button" className="btn" onClick={startCamera} disabled={busy}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                Kamera
               </button>
             </div>
           )}
+        </div>
+      </section>
 
-          {/* Preview Foto Mini di bawah input */}
-          {file && !cameraActive && (
-            <div className="mt-4 flex gap-4 items-center border border-edge p-2 bg-void">
-              <img src={previewUrl} alt="Preview" className="h-16 w-16 object-cover border border-edge" />
-              <div className="flex-1 min-w-0">
-                <div className="truncate text-xs font-mono text-bone">{file.name}</div>
-                <div className="text-[10px] text-bone-dim mt-1">{(file.size / 1024).toFixed(1)} KB</div>
-              </div>
+      <section className="panel" aria-labelledby="verdict-title" aria-busy={busy}>
+        <div className="panel-h"><h2 id="verdict-title">Putusan jalur</h2><span className="num spec">14 centroid · CLIP ViT-H/14</span></div>
+        <div className="ticks" aria-hidden="true" />
+        <div className="panel-b">
+          {phase === "idle" && !file && <LaneLegend />}
+          {busy && <>
+            <ClusterMap scanning />
+            <p className="scan-note">Mencocokkan citra ke centroid terdekat. Permintaan pertama bisa butuh hingga satu menit saat backend bangun.</p>
+          </>}
+          {phase === "done" && result && <ResultCard data={result} onReset={reset} />}
+          {phase === "error" && (
+            <div className="inline-error" role="alert">
+              <b>Triase gagal</b>
+              <span className="dim">{error}</span>
+              <div><button type="button" className="btn" onClick={() => { setError(""); if (file) setPhase("idle"); else reset(); }}>{file ? "Coba lagi" : "Tutup"}</button></div>
             </div>
           )}
-
         </div>
-      </div>
+      </section>
+    </div>
+  );
+}
 
-      {/* Area Loading (HANYA MUNCUL SAAT LOADING) */}
-      {phase === "loading" && (
-        <div className="panel border-amber/30">
-          <div className="panel-h">
-            <h3 className="text-sm font-semibold tracking-wide text-amber">
-              Mencari centroid terdekat...
-            </h3>
-            <span className="text-[10px] font-mono text-amber">BACKEND</span>
-          </div>
-          <div className="relative mt-4">
-            <ClusterMap scanning />
-            <div className="absolute inset-x-0 bottom-4 text-center text-amber text-xs font-mono animate-pulse">
-              Memproses citra dan mencari klaster terdekat...
-            </div>
-          </div>
-        </div>
-      )}
+const LEGEND: LaneCode[] = ["P1", "P2", "P3", "MR"];
 
-      {/* Area Hasil (MUNCUL SAAT SELESAI, MENGGANTIKAN RADAR) */}
-      {phase === "done" && result && (
-        <ResultCard data={result} onReset={reset} />
-      )}
-
-      {phase === "error" && (
-        <div className="panel border-edge">
-          <div className="panel-b p-5">
-            <h3 className="text-sm font-semibold tracking-wide text-amber">Gagal</h3>
-            <p className="mt-2 text-xs leading-relaxed text-bone-dim">{error}</p>
-            <button
-              type="button"
-              onClick={() => { setPhase("idle"); setError(""); }}
-              className="mt-4 min-h-11 border border-amber px-6 py-2 text-xs font-semibold tracking-wide text-amber hover:bg-amber hover:text-void transition-colors"
-            >
-              Coba lagi
-            </button>
-          </div>
-        </div>
-      )}
+function LaneLegend() {
+  return (
+    <div className="verdict-empty">
+      <p>Unggah foto. Putusan muncul di sini sebagai salah satu dari empat jalur.</p>
+      <ul className="lane-legend" style={{ marginTop: 16 }}>
+        {LEGEND.map(code => (
+          <li key={code}>
+            <span className={`num${code === "P1" ? " is-hazard" : ""}`}>{code}</span>
+            <span>{LANES[code].name}<small>{LANES[code].desc}</small></span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
 
 function ResultCard({ data, onReset }: { data: Prediction; onReset: () => void }) {
   const cMeta = CLUSTERS_META[data.cluster.id];
-  // Kalau backend mengirim id di luar tabel, turunkan ke peninjauan manual daripada crash
-  const auto = automaticLane(data) !== "MR";
-  const laneKey = auto ? cMeta.lane : 'MR';
+  // Id di luar tabel turun ke peninjauan manual, bukan crash
+  const auto = Boolean(cMeta) && automaticLane(data) !== "MR";
+  const laneKey: LaneCode = auto ? cMeta.lane : "MR";
   const lane = LANES[laneKey];
-  
+  const hazard = laneKey === "P1";
+
   const reason = !auto
     ? manualReason(data) || (data.runner_up?.label
       ? `${data.cluster.handling}. Kandidat kedua C${data.runner_up.id} (${data.runner_up.label}) terlalu rapat.`
       : data.cluster.handling)
-    : '';
+    : "";
 
-  const fillColorClass = auto ? 'var(--amber)' : 'var(--bone-dim)';
-  const fillWord = auto ? 'Tinggi' : 'Rendah';
-
+  const fill = auto ? "var(--amber)" : "var(--bone-dim)";
   const zsEntries = (data.zero_shot ?? []).slice(0, 3);
   const maxScore = zsEntries[0]?.similarity || 1;
 
   return (
-    <div className="panel res-main">
-      <div className="panel-b pt-5">
-        <StatusPill auto={auto} text={auto ? "Diterima otomatis" : "Peninjauan manual"} />
-        
-        {/* PENAMBAHAN KELAS WARNA TERANG text-bone AGAR KONTRAS */}
-        <div className="res-title mt-2 flex items-center gap-3">
-          <span className="num min-h-6 inline-flex items-center border border-edge px-2 text-bone-dim text-xs">C{data.cluster.id}</span>
-          <h3 className="text-2xl font-bold leading-tight text-bone">{auto ? cMeta.name : "Belum dapat dipastikan"}</h3>
-        </div>
-        <p className="res-sub text-bone-dim mt-1">
-          {auto
-            ? cMeta.sub
-            : `Kandidat terdekat: C${data.cluster.id} (kandidat: ${candidateLabel(data) ?? 'tidak tersedia'})`}
-        </p>
-
-        <div className="grid sm:grid-cols-2 gap-4 mt-4">
-          <div className="box">
-            <span className="label">Confidence margin</span>
-            <div className="big-num text-2xl font-mono mt-1 text-bone">
-              {fixed4(data.margin)}
-              <small className="ml-2 font-sans text-sm font-semibold" style={{ color: fillColorClass }}>{fillWord}</small>
-            </div>
-            <MarginMeter margin={data.margin} threshold={data.threshold} colorClass={fillColorClass} />
-          </div>
-          
-          <div className="box">
-            <span className="label">Tindakan</span>
-            <span className="lane text-bone"><i style={{ backgroundColor: lane.color }}></i>{lane.code} · {lane.desc}</span>
-            <p className="text-sm mt-1 mb-2 text-bone">{auto ? cMeta.action : reason}</p>
-            
-            {auto && cMeta.hazard && (
-              <div className="flex gap-2 items-start bg-[var(--amber-dim)] border border-[var(--amber)] text-amber p-2 text-xs font-semibold">
-                <IconWarn />
-                <span>{cMeta.hazard}</span>
-              </div>
-            )}
-            
-            {auto && (
-              <p className="text-xs text-bone-dim mt-auto">
-                <b className="text-bone">Material utama:</b> {cMeta.material}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="box mt-4">
-          <span className="label">Zero-Shot Similarity · 3 Teratas</span>
-          <div className="flex flex-col gap-3 mt-2">
-            {zsEntries.map((zs, i) => (
-              <div key={zs.label} className="flex flex-col gap-1">
-                <div className="flex justify-between text-xs font-mono">
-                  <span className="text-bone capitalize">{zs.label}</span>
-                  <span className="text-bone-dim">{fixed4(zs.similarity)}</span>
-                </div>
-                <div className="h-1.5 bg-edge overflow-hidden">
-                  <div 
-                    className="h-full bg-bone transition-all duration-500" 
-                    style={{ width: `${(zs.similarity / maxScore) * 100}%`, opacity: i === 0 ? 1 : 0.4 }} 
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {data.disclaimer && (
-          <p className="mt-4 text-[11px] leading-relaxed text-bone-dim border-t border-edge pt-3">
-            {data.disclaimer}
-          </p>
-        )}
-
-        <button
-          type="button"
-          onClick={onReset}
-          className="mt-4 w-full min-h-12 border border-edge bg-iron-hi text-bone text-xs font-semibold tracking-wide hover:border-amber hover:text-amber transition-colors"
-        >
-          ANALISIS CITRA BARU
-        </button>
+    <>
+      <div className={`ticket-lane${hazard ? " is-hazard" : ""}${auto ? "" : " is-manual"}`}>
+        <span className="num lane-code">{lane.code}</span>
+        <span><b>{lane.name}</b><small>{lane.desc}</small></span>
       </div>
-    </div>
+
+      <StatusPill auto={auto} text={auto ? "Diterima otomatis" : "Peninjauan manual"} />
+
+      <div className="ticket-id">
+        <span className="num chip">C{data.cluster.id}</span>
+        <h3>{auto ? cMeta.name : "Belum dapat dipastikan"}</h3>
+      </div>
+      <p className="ticket-sub">{auto ? cMeta.sub : `Kandidat terdekat: C${data.cluster.id} (${candidateLabel(data) ?? "tidak tersedia"})`}</p>
+
+      <div className="block">
+        <span className="label">Margin keyakinan</span>
+        <div className="num reading">{fixed4(data.margin)}<small style={{ color: fill }}>{auto ? "di atas ambang" : "di bawah ambang"}</small></div>
+        <MarginMeter margin={data.margin} threshold={data.threshold} colorClass={fill} />
+      </div>
+
+      <div className="block">
+        <span className="label">Tindakan</span>
+        <p>{auto ? cMeta.action : reason}</p>
+        {auto && cMeta.hazard && <div className="hazard-note"><IconWarn /><span>{cMeta.hazard}</span></div>}
+        {auto && <p className="dim"><b className="text-bone">Material utama:</b> {cMeta.material}</p>}
+      </div>
+
+      {zsEntries.length > 0 && (
+        <details className="zs block">
+          <summary>Similaritas zero-shot, 3 teratas</summary>
+          {zsEntries.map((zs, i) => (
+            <div key={zs.label}>
+              <div className="zs-row num"><span>{zs.label}</span><span className="dim">{fixed4(zs.similarity)}</span></div>
+              <div className="zs-bar"><i style={{ width: `${(zs.similarity / maxScore) * 100}%`, opacity: i === 0 ? 1 : 0.4 }} /></div>
+            </div>
+          ))}
+        </details>
+      )}
+
+      {data.disclaimer && <p className="disclaimer">{data.disclaimer}</p>}
+
+      <button type="button" className="btn btn-block" onClick={onReset}>Triase barang berikutnya</button>
+    </>
   );
 }
