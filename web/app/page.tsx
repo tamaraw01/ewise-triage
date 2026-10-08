@@ -17,7 +17,8 @@ export default function Page() {
     <header className="dashboard-header"><div><h1>E-WISE</h1><p>Konsol triase limbah elektronik</p></div><span className="num">CLIP ViT-H/14</span></header>
     <nav className="dashboard-nav" aria-label="Bagian dashboard">{sections.map(name => <button key={name} aria-current={section === name ? 'page' : undefined} onClick={() => setSection(name)}>{name}</button>)}</nav>
     <div id="konten" tabIndex={-1}>
-      {section === 'Konsol' && <section aria-labelledby="overview-title"><h2 id="overview-title">Konsol triase</h2><p className="intro">Unggah satu citra untuk melihat hasil triase.</p><TriagePanel />
+      {section === 'Konsol' && <section aria-label="Konsol triase"><TriagePanel />
+
 
       </section>}
       {section === 'Cluster Explorer' && <Explorer />}
