@@ -297,7 +297,7 @@ function ResultCard({ data, onReset }: { data: Prediction; onReset: () => void }
 
       <div className="block">
         <span className="label">Margin keyakinan</span>
-        <div className="num reading">{fixed4(data.margin)}<small style={{ color: fill }}>{auto ? "di atas ambang" : "di bawah ambang"}</small></div>
+        <div className="num reading">{fixed4(data.margin)}<small style={{ color: fill }}>{data.margin >= data.threshold ? "di atas ambang" : "di bawah ambang"}</small></div>
         <MarginMeter margin={data.margin} threshold={data.threshold} colorClass={fill} />
       </div>
 

@@ -12,17 +12,17 @@
   --font-mono: var(--font-plex-mono);
 }
 
-/* DESIGN.md palette: 2 core + bone + 1 accent. Amber marks only the hazard lane and the confidence being read. */
 :root {
   color-scheme: dark;
-  --void: #100e0b;
-  --iron: #1c1915;
-  --iron-hi: #262219;
-  --edge: #3a342a;
-  --bone: #e8e3d9;
-  --bone-dim: #a8a196;
-  --amber: #f0a030;
-  --amber-dim: rgba(240, 160, 48, 0.1);
+  --void: #171e19;
+  --iron: #202a23;
+  --iron-hi: #2d3930;
+  --edge: #536356;
+  --bone: #eeeade;
+  --bone-dim: #b9c2b5;
+  --green: #b2cd92;
+  --amber: #f0b451;
+  --amber-dim: rgba(240,180,81,.1);
 }
 
 body { background: var(--void); color: var(--bone); margin: 0; font-family: var(--font-plex-sans), system-ui, sans-serif; }

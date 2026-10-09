@@ -56,12 +56,7 @@ export default function ClusterMap({
 
   return (
     <div className="relative w-full overflow-hidden bg-void">
-      {/* Background Grid */}
-      <div 
-        className="absolute inset-0 pointer-events-none opacity-20"
-        style={{ backgroundImage: "radial-gradient(#ebb303 1px, transparent 1px)", backgroundSize: "24px 24px" }}
-      />
-      
+
       {/* Cincin Sonar Statis (hanya saat scanning) */}
       {scanning && (
         <>
@@ -84,6 +79,8 @@ export default function ClusterMap({
         <svg
           viewBox={`0 0 ${W} ${H}`}
           preserveAspectRatio="xMidYMid meet"
+          role="img"
+          aria-label={scanning ? "Analisis berlangsung: sebaran klaster riset" : `Sebaran klaster riset, C${highlightedId} disorot`}
           className="absolute inset-0 h-full w-full"
         >
           {points.map((p: any, i: number) => {
@@ -122,7 +119,6 @@ export default function ClusterMap({
                   fill="none"
                   stroke="var(--amber)"
                   strokeWidth={1}
-                  className="animate-pulse"
                 />
               );
             })
@@ -130,11 +126,7 @@ export default function ClusterMap({
         </svg>
       </div>
       
-      {/* Scanline CRT overlay permanen (estetika industrial) */}
-      <div 
-        className="absolute inset-0 pointer-events-none mix-blend-overlay opacity-30" 
-        style={{ background: "linear-gradient(rgba(18,16,12,0) 50%, rgba(0,0,0,0.25) 50%), linear-gradient(90deg, rgba(255,0,0,0.06), rgba(0,255,0,0.02), rgba(0,0,255,0.06))", backgroundSize: "100% 4px, 3px 100%" }}
-      />
+
     </div>
   );
 }
