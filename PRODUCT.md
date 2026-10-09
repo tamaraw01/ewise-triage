@@ -5,7 +5,7 @@
 web
 
 ## Product Purpose
-Triase foto limbah elektronik dan pemeriksaan klaster riset. User confirmed landing baru yang kuat, pembukaan beranimasi, dashboard sederhana, navigasi pulang, serta seluruh perilaku dan batas keselamatan tetap utuh.
+Triase foto limbah elektronik dan pemeriksaan klaster riset. Langsung Konsol dan Cluster Explorer di /. Tanpa beranda atau animasi pembuka. Charcoal menjaga foto sebagai fokus; hijau sirkuit menandai aksi dan pilihan, putih tulang untuk teks, amber untuk peringatan. ENERGY 2 / RHYTHM 1 / MOTION 1. Panel input/hasil mempertahankan alur kerja; IBM Plex menjaga keterbacaan label dan angka.
 
 ## Users
 Petugas pemilah dan penguji riset, inherited from existing DESIGN.md; no new audience assumptions.
