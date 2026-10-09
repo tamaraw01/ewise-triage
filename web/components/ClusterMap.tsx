@@ -3,130 +3,38 @@
 import { useMemo } from "react";
 import { scatter } from "@/lib/data";
 
-const W = 720;
-const H = 460;
-const PAD = 28;
+const W = 720, H = 460, PAD = 44;
 
-/**
- * Peta radar UMAP. Dua mode:
- * - scanning=true: titik berkedip berurutan disapu sonar (loading)
- * - scanning=false + highlightedId: satu klaster menyala, sisa redup (hasil)
- */
-export default function ClusterMap({
-  highlightedId,
-  scanning = false,
-}: {
+export default function ClusterMap({ highlightedId, scanning = false, onSelect }: {
   highlightedId?: number | null;
   scanning?: boolean;
+  onSelect?: (id: number) => void;
 }) {
-  const points = useMemo(() => {
-    if (scatter.length === 0) return [];
-    let minX = Infinity, maxX = -Infinity;
-    let minY = Infinity, maxY = -Infinity;
-    for (const p of scatter) {
-      if (p.x < minX) minX = p.x;
-      if (p.x > maxX) maxX = p.x;
-      if (p.y < minY) minY = p.y;
-      if (p.y > maxY) maxY = p.y;
-    }
-    const rx = maxX - minX || 1;
-    const ry = maxY - minY || 1;
-
-    // Normalisasi, tapi kita perlu hitung sudut untuk delay sonar.
-    // Asumsikan tengah SVG adalah cx=W/2, cy=H/2
-    const cx = W / 2;
-    const cy = H / 2;
-
-    return scatter.map((p) => {
+  const { points, anchors } = useMemo(() => {
+    const xs = scatter.map(p => p.x), ys = scatter.map(p => p.y);
+    const minX = Math.min(...xs), minY = Math.min(...ys);
+    const rx = Math.max(...xs) - minX || 1, ry = Math.max(...ys) - minY || 1;
+    const points = scatter.map(p => {
       const px = PAD + ((p.x - minX) / rx) * (W - PAD * 2);
       const py = PAD + ((p.y - minY) / ry) * (H - PAD * 2);
-      
-      // Hitung sudut dari tengah (0 s/d 360). y dibalik karena koordinat SVG terbalik.
-      let angle = Math.atan2(py - cy, px - cx) * (180 / Math.PI);
-      // Offset 90deg karena conic-gradient mulai dari atas (jam 12) arah jarum jam
-      angle = (angle + 90 + 360) % 360;
-      
-      // Waktu putaran 3 detik (3000ms), hitung persentase waktu.
-      // Sinar nyapu searah jarum jam, maka delay sama dengan proporsi sudut.
-      const delay = (angle / 360) * 3;
-
-      return { ...p, px, py, angle, delay };
+      return { ...p, px, py, delay: ((Math.atan2(py - H / 2, px - W / 2) * 180 / Math.PI + 450) % 360) / 120 };
     });
+    // Anchors label sample means in this projection, never inference centroids.
+    const anchors = [...new Set(points.map(p => p.c))].map(id => {
+      const group = points.filter(p => p.c === id);
+      const x = group.reduce((s, p) => s + p.px, 0) / group.length, top = Math.min(...group.map(p => p.py)), bottom = Math.max(...group.map(p => p.py));
+      return { id, x: Math.min(Math.max(x, 28), W - 28), y: top > 52 ? top - 24 : bottom + 24 };
+    });
+    return { points, anchors };
   }, []);
 
-  return (
-    <div className="relative w-full overflow-hidden bg-void">
-
-      {/* Cincin Sonar Statis (hanya saat scanning) */}
-      {scanning && (
-        <>
-          <div className="sonar-ring w-1/4 h-1/4" />
-          <div className="sonar-ring w-2/4 h-2/4" />
-          <div className="sonar-ring w-3/4 h-3/4" />
-          <div className="sonar-ring w-full h-full" />
-        </>
-      )}
-
-      {/* Sweeping Sonar Beam */}
-      {scanning && (
-        <div className="absolute inset-[-50%] pointer-events-none flex items-center justify-center">
-          <div className="w-[150%] aspect-square sonar-sweep" />
-        </div>
-      )}
-
-      {/* Titik Scatter (di atas sonar) */}
-      <div className="relative z-10 w-full pb-[63.8%]">
-        <svg
-          viewBox={`0 0 ${W} ${H}`}
-          preserveAspectRatio="xMidYMid meet"
-          role="img"
-          aria-label={scanning ? "Analisis berlangsung: sebaran klaster riset" : `Sebaran klaster riset, C${highlightedId} disorot`}
-          className="absolute inset-0 h-full w-full"
-        >
-          {points.map((p: any, i: number) => {
-            const active = highlightedId !== undefined && highlightedId === p.c;
-            const dim = highlightedId !== undefined && highlightedId !== p.c && !scanning;
-            
-            return (
-              <circle
-                key={i}
-                cx={p.px}
-                cy={p.py}
-                r={active ? 3.5 : 2}
-                fill={active ? "var(--amber)" : "var(--bone-dim)"}
-                className={scanning ? "animate-radar-dot" : "transition-opacity duration-700"}
-                style={{
-                  animationDelay: scanning ? `${p.delay}s` : "0s",
-                  opacity: scanning ? undefined : (dim ? 0.15 : (active ? 1 : 0.4))
-                }}
-              />
-            );
-          })}
-
-          {/* Sorotan ekstra buat titik centroid pemenang (jika ada) */}
-          {highlightedId !== undefined && !scanning && (
-            points.filter((p: any) => p.c === highlightedId).map((p: any, i: number) => {
-              // Gambar ring berdenyut (pulse) di sekitar klaster pemenang. 
-              // Kita ambil rata-rata centroid titik-titik pemenang, tapi ini per titik.
-              // Agar tidak terlalu ramai, gambar pulse cuma di titik pertama pemenang sbg jangkar
-              if (i !== 0) return null;
-              return (
-                <circle
-                  key={`pulse-${i}`}
-                  cx={p.px}
-                  cy={p.py}
-                  r={12}
-                  fill="none"
-                  stroke="var(--amber)"
-                  strokeWidth={1}
-                />
-              );
-            })
-          )}
-        </svg>
-      </div>
-      
-
-    </div>
-  );
+  return <div className="cluster-map">
+    {scanning && <><div className="sonar-ring w-1/4 h-1/4" /><div className="sonar-ring w-2/4 h-2/4" /><div className="sonar-ring w-3/4 h-3/4" /><div className="absolute inset-[-50%] pointer-events-none flex items-center justify-center"><div className="w-[150%] aspect-square sonar-sweep" /></div></>}
+    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={scanning ? "Analisis berlangsung: sebaran klaster riset" : `Sebaran klaster riset, C${highlightedId} disorot. Pilihan tersedia di bawah peta.`}>
+      {[...points].sort((a, b) => Number(a.c === highlightedId) - Number(b.c === highlightedId)).map((p, i) => <circle key={i} cx={p.px} cy={p.py} r={highlightedId === p.c ? 6 : 2.4} className={scanning ? "animate-radar-dot" : undefined} style={{ fill: highlightedId === p.c ? "var(--green)" : "var(--bone-dim)", stroke: highlightedId === p.c ? "var(--void)" : undefined, strokeWidth: highlightedId === p.c ? 1.4 : undefined, animationDelay: `${p.delay}s`, opacity: scanning ? undefined : highlightedId === p.c ? 1 : .2 }} />)}
+      {!scanning && anchors.filter(a => a.id === highlightedId).map(a => <g key={a.id} className={`map-label${a.id === highlightedId ? " selected" : ""}`} transform={`translate(${a.x}, ${a.y})`} onClick={() => onSelect?.(a.id)} aria-hidden="true">
+        <rect x="-23" y="-15" width="46" height="30" rx="2" /><text textAnchor="middle" dy="5">C{a.id}</text>
+      </g>)}
+    </svg>
+  </div>;
 }

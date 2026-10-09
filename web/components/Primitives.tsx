@@ -14,8 +14,8 @@ export function MarginMeter({ margin, threshold, colorClass }: { margin: number;
       <div className="ticks" aria-hidden="true" />
       <div className="meter-scale">
         <span>0</span>
-        <span>ambang {fixed4(threshold)}</span>
-        <span>0,20</span>
+        <span className="threshold-label" style={{ left: `clamp(0px, calc(${tickL}% - 2ch), calc(100% - 13ch))` }}>ambang {fixed4(threshold)}</span>
+        <span>{margin > scaleMax ? "> 0,20" : "0,20"}</span>
       </div>
     </div>
   );
