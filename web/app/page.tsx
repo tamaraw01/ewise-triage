@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import Image from "next/image";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
 import TriagePanel from "@/components/TriagePanel";
-import ClusterMap from "@/components/ClusterMap";
+import ClusterField from "@/components/ClusterField";
 import meta from "@/data/meta.json";
 import { CLUSTERS_META, LANES, fixed4, type LaneCode } from "@/lib/data";
 
@@ -13,16 +16,22 @@ const clusters = Object.values(CLUSTERS_META);
 
 export default function Page() {
   const [section, setSection] = useState<Section>("Konsol");
+  const stage = useRef<HTMLDivElement>(null);
+  useGSAP(() => {
+    gsap.matchMedia().add("(prefers-reduced-motion: no-preference)", () => {
+      gsap.from(stage.current!.querySelectorAll(":scope > * > *"), { y: 14, autoAlpha: 0, duration: .45, ease: "power3.out", stagger: .05, clearProps: "all" });
+    });
+  }, { dependencies: [section], scope: stage });
   return (
     <main id="konten" className="dashboard">
       <header className="dashboard-header">
-        <div className="brand"><h1>E-WISE</h1><p>Triase limbah elektronik</p></div>
+        <div className="brand"><Image src="/ewise-mark.png" alt="" width={44} height={44} priority className="brand-mark" /><h1 aria-label="E-WISE">E<span className="brand-dash" aria-hidden="true" />WISE</h1><p>Triase limbah elektronik</p></div>
         <span className="spec">Satu foto. Rekomendasi jalur. Pemeriksaan petugas.</span>
       </header>
       <nav className="dashboard-nav" aria-label="Bagian dashboard">
         {sections.map(name => <button key={name} type="button" aria-current={section === name ? "page" : undefined} onClick={() => setSection(name)}>{name}</button>)}
       </nav>
-      {section === "Konsol" ? <TriagePanel /> : <Explorer />}
+      <div ref={stage} className="dashboard-stage">{section === "Konsol" ? <TriagePanel /> : <Explorer />}</div>
       <footer className="dashboard-footer"><span>E-WISE</span><span>Hasil visual bukan pemeriksaan fisik. Ikuti SOP fasilitas.</span></footer>
     </main>
   );
@@ -38,11 +47,11 @@ function Explorer() {
       <div className="explorer">
         <figure className="cluster-atlas">
           <div className="panel-h"><h3>Peta sebaran</h3><span className="spec num">C{c.id} dipilih</span></div>
-          <ClusterMap highlightedId={selected} onSelect={setSelected} />
+          <ClusterField selected={selected} onSelect={setSelected} />
           <div className="atlas-controls" aria-label="Pilih klaster pada peta">
             {clusters.map(x => <button key={x.id} className="cluster-key num" type="button" aria-pressed={selected === x.id} onClick={() => setSelected(x.id)}>C{x.id}</button>)}
           </div>
-          <figcaption>Proyeksi 2D · {meta.scatter_points.toLocaleString("id-ID")} titik sampel. Pilih ID untuk memeriksa klaster. Posisi bukan ruang inferensi.</figcaption>
+          <figcaption>Proyeksi 2D · {meta.scatter_points.toLocaleString("id-ID")} titik sampel. Klik titik atau ID untuk memeriksa klaster. Kemiringan hanya tampilan; posisi bukan ruang inferensi.</figcaption>
         </figure>
         <article className="cluster-dossier" aria-live="polite">
           <div className="dossier-title"><span className="dossier-id num">C{c.id}</span><div><h3>{c.sub}</h3><span className={`spec${c.lane === "P1" ? " is-hazard" : ""}`}>{c.lane} · {LANES[c.lane].desc}</span></div></div>
