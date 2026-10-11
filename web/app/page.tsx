@@ -25,7 +25,7 @@ export default function Page() {
   return (
     <main id="konten" className="dashboard">
       <header className="dashboard-header">
-        <div className="brand"><Image src="/ewise-mark.png" alt="" width={44} height={44} priority className="brand-mark" /><h1 aria-label="E-WISE">E<span className="brand-dash" aria-hidden="true" />WISE</h1><p>Triase limbah elektronik</p></div>
+        <div className="brand"><Image src="/ewise-mark.png" alt="" width={56} height={56} priority className="brand-mark" /><h1 aria-label="E-WISE">E<span className="brand-dash" aria-hidden="true" />WISE</h1><p>Triase limbah elektronik</p></div>
         <span className="spec">Satu foto. Rekomendasi jalur. Pemeriksaan petugas.</span>
       </header>
       <nav className="dashboard-nav" aria-label="Bagian dashboard">
