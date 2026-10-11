@@ -26,7 +26,13 @@ button:active:not(:disabled) { filter:brightness(.92); }
 .dashboard-nav { display:flex; gap:8px; border-bottom:1px solid var(--edge); margin-bottom:32px; }
 .dashboard-nav button { min-height:48px; padding:0 24px; background:none; border:0; color:var(--bone-dim); font-weight:600; font-size:15px; cursor:pointer; }
 .dashboard-nav button:hover { color:var(--bone); background:var(--iron-hi); }
-.dashboard-nav button[aria-current] { background:var(--green); color:var(--void); }
+.dashboard-nav button[aria-selected="true"] { background:var(--green); color:var(--void); }
+[hidden] { display:none !important; }
+.field-loading { aspect-ratio:1/.64; display:grid; place-items:center; color:var(--bone-dim); }
+@media (prefers-reduced-motion:no-preference) {
+  [role="tabpanel"]:not([hidden]) { animation:workspace-in .16s ease-out; }
+  @keyframes workspace-in { from { opacity:.8; } to { opacity:1; } }
+}
 .dashboard-stage { flex:1; padding-bottom:44px; }
 .dashboard-footer { display:flex; justify-content:space-between; gap:16px; margin-top:auto; padding:20px 0 28px; border-top:1px solid var(--edge); font-size:13px; color:var(--bone-dim); }
 .workspace-heading { grid-column:1/-1; display:flex; align-items:center; justify-content:space-between; gap:24px; margin-bottom:4px; }

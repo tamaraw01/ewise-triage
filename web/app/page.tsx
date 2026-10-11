@@ -1,11 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
+import dynamic from "next/dynamic";
 import TriagePanel from "@/components/TriagePanel";
-import ClusterField from "@/components/ClusterField";
+const ClusterField = dynamic(() => import("@/components/ClusterField"), {
+  ssr: false,
+  loading: () => <div className="field-loading" role="status">Memuat peta klaster…</div>,
+});
 import meta from "@/data/meta.json";
 import { CLUSTERS_META, LANES, fixed4, type LaneCode } from "@/lib/data";
 
@@ -16,22 +18,26 @@ const clusters = Object.values(CLUSTERS_META);
 
 export default function Page() {
   const [section, setSection] = useState<Section>("Konsol");
-  const stage = useRef<HTMLDivElement>(null);
-  useGSAP(() => {
-    gsap.matchMedia().add("(prefers-reduced-motion: no-preference)", () => {
-      gsap.from(stage.current!.querySelectorAll(":scope > * > *"), { y: 14, autoAlpha: 0, duration: .45, ease: "power3.out", stagger: .05, clearProps: "all" });
-    });
-  }, { dependencies: [section], scope: stage });
+  const [explorerOpened, setExplorerOpened] = useState(false);
   return (
     <main id="konten" className="dashboard">
       <header className="dashboard-header">
         <div className="brand"><Image src="/ewise-mark.png" alt="" width={56} height={56} priority className="brand-mark" /><h1 aria-label="E-WISE">E<span className="brand-dash" aria-hidden="true" />WISE</h1><p>Triase limbah elektronik</p></div>
-        <span className="spec">Satu foto. Rekomendasi jalur. Pemeriksaan petugas.</span>
+        <span className="spec">Rekomendasi visual untuk pemeriksaan petugas</span>
       </header>
-      <nav className="dashboard-nav" aria-label="Bagian dashboard">
-        {sections.map(name => <button key={name} type="button" aria-current={section === name ? "page" : undefined} onClick={() => setSection(name)}>{name}</button>)}
+      <nav className="dashboard-nav" role="tablist" aria-label="Ruang kerja">
+        {sections.map((name, index) => <button key={name} id={`tab-${index}`} type="button" role="tab" aria-selected={section === name} aria-controls={`panel-${index}`} tabIndex={section === name ? 0 : -1} onClick={() => { setSection(name); if (index === 1) setExplorerOpened(true); }} onKeyDown={event => {
+          const next = event.key === "Home" ? 0 : event.key === "End" ? 1 : event.key === "ArrowRight" || event.key === "ArrowLeft" ? 1 - index : -1;
+          if (next < 0) return;
+          event.preventDefault();
+          document.getElementById(`tab-${next}`)?.click();
+          document.getElementById(`tab-${next}`)?.focus();
+        }}>{name}</button>)}
       </nav>
-      <div ref={stage} className="dashboard-stage">{section === "Konsol" ? <TriagePanel /> : <Explorer />}</div>
+      <div className="dashboard-stage">
+        <div id="panel-0" role="tabpanel" aria-labelledby="tab-0" hidden={section !== "Konsol"}><TriagePanel active={section === "Konsol"} /></div>
+        <div id="panel-1" role="tabpanel" aria-labelledby="tab-1" hidden={section !== "Cluster Explorer"}>{explorerOpened && <Explorer />}</div>
+      </div>
       <footer className="dashboard-footer"><span>E-WISE</span><span>Hasil visual bukan pemeriksaan fisik. Ikuti SOP fasilitas.</span></footer>
     </main>
   );
@@ -75,7 +81,7 @@ function Explorer() {
           {LANE_ORDER.map(code => <div key={code} className="lane-group">
             <h4><span className="num">{code}</span>{LANES[code].desc}</h4>
             <div className="c-head num" aria-hidden="true"><span>ID</span><span>Isi dominan</span><span className="r">Citra</span><span className="r">Murni</span><span className="r zs-col">Margin nama</span></div>
-            {clusters.filter(x => x.lane === code).map(x => <button key={x.id} type="button" className="c-row" aria-pressed={selected === x.id} onClick={() => setSelected(x.id)}>
+            {clusters.filter(x => x.lane === code).map(x => <button key={x.id} type="button" className="c-row" aria-label={`C${x.id}, ${x.dom}, jalur ${code}, ${x.n} citra, kemurnian ${x.pur.toLocaleString("id-ID")} persen, margin nama ${fixed4(x.zs)}${code === "MR" ? ", tinjau manual" : ""}`} aria-pressed={selected === x.id} onClick={() => setSelected(x.id)}>
               <span className="num">C{x.id}</span><span className="sub">{x.dom}{x.lane === "MR" && <span className="flag">tinjau</span>}</span><span className="num r dim">{x.n}</span><span className="num r">{x.pur.toLocaleString("id-ID")}%</span><span className="num r margin zs-col">{fixed4(x.zs)}</span>
             </button>)}
           </div>)}

@@ -82,19 +82,22 @@ export default function ClusterField({ selected, onSelect }: { selected: number;
     let visible = true, raf = 0;
     const resize = () => {
       const w = el.clientWidth, h = Math.round(w * 0.64);
+      if (!w || !h) return;
       renderer.setSize(w, h);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
+      invalidate();
     };
     const project = (v: THREE.Vector3) => {
       const p = v.clone().applyMatrix4(field.matrixWorld).project(camera);
       return { x: (p.x + 1) / 2 * el.clientWidth, y: (1 - p.y) / 2 * el.clientWidth * 0.64 };
     };
     const frame = () => {
-      raf = requestAnimationFrame(frame);
-      if (!visible) return;
+      raf = 0;
+      if (!visible || document.hidden) return;
       field.rotation.x += (tilt.y * 0.22 - field.rotation.x) * 0.08;
       field.rotation.y += (tilt.x * 0.3 - field.rotation.y) * 0.08;
+      const moving = Math.abs(tilt.y * 0.22 - field.rotation.x) + Math.abs(tilt.x * 0.3 - field.rotation.y) > 0.0001;
       field.updateMatrixWorld();
       renderer.render(scene, camera);
       const m = means.get(u.uSel.value);
@@ -102,22 +105,25 @@ export default function ClusterField({ selected, onSelect }: { selected: number;
         const { x, y } = project(m.clone().setZ(0.12));
         label.current.style.transform = `translate(${x}px, ${y - 34}px) translateX(-50%)`;
       }
+      if (moving) invalidate();
     };
+    const invalidate = () => { if (!raf && visible && !document.hidden) raf = requestAnimationFrame(frame); };
     resize();
-    frame();
 
     const move = (e: PointerEvent) => {
       if (still) return;
       const r = el.getBoundingClientRect();
       tilt.x = (e.clientX - r.left) / r.width - 0.5;
       tilt.y = (e.clientY - r.top) / r.height - 0.5;
+      invalidate();
     };
-    const leave = () => { tilt.x = 0; tilt.y = 0; };
+    const leave = () => { tilt.x = 0; tilt.y = 0; invalidate(); };
     const pick = (e: MouseEvent) => {
       const r = el.getBoundingClientRect();
       let best = -1, d = 18 * 18;
       for (let i = 0; i < scatter.length; i++) {
-        const s = project(new THREE.Vector3(pos[i * 3], pos[i * 3 + 1], 0));
+        const hi = (cl[i] === u.uSel.value ? u.uT.value : 0) + (cl[i] === u.uPrev.value ? 1 - u.uT.value : 0);
+        const s = project(new THREE.Vector3(pos[i * 3], pos[i * 3 + 1], hi * 0.12));
         const dd = (s.x - (e.clientX - r.left)) ** 2 + (s.y - (e.clientY - r.top)) ** 2;
         if (dd < d) { d = dd; best = i; }
       }
@@ -128,19 +134,27 @@ export default function ClusterField({ selected, onSelect }: { selected: number;
         if (id === u.uSel.value) return;
         u.uPrev.value = u.uSel.value;
         u.uSel.value = id;
-        gsap.fromTo(u.uT, { value: 0 }, { value: 1, duration: still ? 0 : 0.55, ease: "power3.out" });
+        gsap.killTweensOf(u.uT);
+        gsap.fromTo(u.uT, { value: 0 }, { value: 1, duration: still ? 0 : 0.55, ease: "power3.out", onUpdate: invalidate });
+        invalidate();
       },
     };
     const ro = new ResizeObserver(resize);
     ro.observe(el);
-    const io = new IntersectionObserver(([en]) => { visible = en.isIntersecting; });
+    const resume = invalidate;
+    const io = new IntersectionObserver(([en]) => { visible = en.isIntersecting; resume(); });
     io.observe(el);
+    document.addEventListener("visibilitychange", resume);
+    const contextLost = (event: Event) => { event.preventDefault(); setFailed(true); };
+    renderer.domElement.addEventListener("webglcontextlost", contextLost);
     el.addEventListener("pointermove", move);
     el.addEventListener("pointerleave", leave);
     el.addEventListener("click", pick);
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect(); io.disconnect();
+      document.removeEventListener("visibilitychange", resume);
+      renderer.domElement.removeEventListener("webglcontextlost", contextLost);
       el.removeEventListener("pointermove", move);
       el.removeEventListener("pointerleave", leave);
       el.removeEventListener("click", pick);
@@ -151,7 +165,7 @@ export default function ClusterField({ selected, onSelect }: { selected: number;
     };
     // onSelect identity is stable (setState); scene builds once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [failed]);
 
   useEffect(() => { api.current?.select(selected); }, [selected]);
 

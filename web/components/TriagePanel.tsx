@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fixed4, CLUSTERS_META, LANES, type LaneCode } from "@/lib/data";
-import { resolveApiBase, backendSiap, submitToBackend } from "@/lib/api";
+import { submitToBackend } from "@/lib/api";
 import { MarginMeter, StatusPill, IconWarn } from "./Primitives";
 import ClusterMap from "./ClusterMap";
-import { automaticLane, candidateLabel, manualReason, parsePrediction } from "@/lib/session";
+import { automaticLane, candidateLabel, manualReason, parsePrediction, validateFile } from "@/lib/session";
 
 type ZeroShot = { label: string; similarity: number };
 
@@ -29,77 +29,107 @@ type Prediction = {
   disclaimer: string;
 };
 
-export default function TriagePanel() {
+export default function TriagePanel({ active = true }: { active?: boolean }) {
   const [phase, setPhase] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [result, setResult] = useState<Prediction | null>(null);
   const [error, setError] = useState("");
-  
-
-
-
   const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const cameraRequest = useRef(0);
+  const cameraStarting = useRef(false);
   const request = useRef<AbortController | null>(null);
-  useEffect(() => () => request.current?.abort(), []);
   const [cameraActive, setCameraActive] = useState(false);
+  const [cameraPending, setCameraPending] = useState(false);
+
+  const releaseCamera = useCallback(() => {
+    cameraRequest.current += 1;
+    cameraStarting.current = false;
+    streamRef.current?.getTracks().forEach(track => track.stop());
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+  }, []);
+
+  const stopCamera = useCallback(() => {
+    releaseCamera();
+    setCameraActive(false);
+    setCameraPending(false);
+  }, [releaseCamera]);
+
+  useEffect(() => {
+    if (!active) stopCamera();
+    return releaseCamera;
+  }, [active, releaseCamera, stopCamera]);
+  useEffect(() => () => request.current?.abort(), []);
+  useEffect(() => () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+  }, [previewUrl]);
+  useEffect(() => {
+    const video = videoRef.current;
+    if (cameraActive && video) video.srcObject = streamRef.current;
+    return () => { if (video) video.srcObject = null; };
+  }, [cameraActive]);
 
   const reset = useCallback(() => {
     request.current?.abort();
     setPhase("idle");
     setResult(null);
     setError("");
-
-    if (previewUrl && previewUrl.startsWith("blob:")) {
-      URL.revokeObjectURL(previewUrl);
-    }
     setPreviewUrl("");
     setFile(null);
     stopCamera();
-  }, [previewUrl]);
+  }, [stopCamera]);
 
-  // Handle file select
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = e.target.files?.[0];
-    if (!selected) return;
-    
+  const selectFile = (selected: File) => {
     reset();
+    const validationError = validateFile(selected);
+    if (validationError) {
+      setError(validationError);
+      setPhase("error");
+      return;
+    }
     setFile(selected);
     setPreviewUrl(URL.createObjectURL(selected));
   };
 
-  // Handle camera start
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: "environment" } 
-      });
-      setCameraActive(true);
-      
-      // Tunggu React selesai me-render tag <video> (di dalam timeout 0 atau langsung mengikat ref sesudahnya)
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-      }, 50);
-    } catch {
-      setError("Kamera tidak dapat diakses. Pilih berkas foto sebagai gantinya.");
-      setPhase("error");
-    }
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    e.target.value = "";
+    if (selected && phase !== "loading") selectFile(selected);
   };
 
-  const stopCamera = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
-      videoRef.current.srcObject = null;
+  const startCamera = async () => {
+    if (!active || cameraStarting.current || cameraActive || phase === "loading") return;
+    const id = ++cameraRequest.current;
+    cameraStarting.current = true;
+    setCameraPending(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" }
+      });
+      if (id !== cameraRequest.current) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
+      streamRef.current = stream;
+      setCameraActive(true);
+    } catch {
+      if (id !== cameraRequest.current) return;
+      setError("Kamera tidak bisa dibuka. Pilih foto dari perangkat.");
+      setPhase("error");
+    } finally {
+      if (id === cameraRequest.current) {
+        cameraStarting.current = false;
+        setCameraPending(false);
+      }
     }
-    setCameraActive(false);
   };
 
   // Jepret frame dari video feed, jadikan File, biarkan auto-submit yang jalan
   const capturePhoto = () => {
-    if (!videoRef.current || !cameraActive) return;
+    if (!videoRef.current || !cameraActive || !videoRef.current.videoWidth || !videoRef.current.videoHeight) return;
+    const id = cameraRequest.current;
 
     const canvas = document.createElement("canvas");
     canvas.width = videoRef.current.videoWidth;
@@ -110,15 +140,8 @@ export default function TriagePanel() {
     ctx.drawImage(videoRef.current, 0, 0);
 
     canvas.toBlob((blob) => {
-      if (!blob) return;
-      const shot = new File([blob], "capture.jpg", { type: "image/jpeg" });
-      setPhase("idle");
-      setResult(null);
-      setError("");
-  
-      setFile(shot);
-      setPreviewUrl(URL.createObjectURL(shot));
-      stopCamera();
+      if (!blob || id !== cameraRequest.current) return;
+      selectFile(new File([blob], "capture.jpg", { type: "image/jpeg" }));
     }, "image/jpeg", 0.9);
   };
 
@@ -155,33 +178,9 @@ export default function TriagePanel() {
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const dropped = e.dataTransfer.files?.[0];
-    if (phase !== "loading" && dropped && dropped.type.startsWith("image/")) {
-      reset();
-      setFile(dropped);
-      setPreviewUrl(URL.createObjectURL(dropped));
-    }
+    if (phase !== "loading" && dropped) selectFile(dropped);
   };
   const onDragOver = (e: React.DragEvent) => e.preventDefault();
-
-  // Cari alamat backend sejak halaman dibuka, lalu jaga tetap panas.
-  // Memanaskan lebih dulu berarti unggahan pertama tidak menanggung
-  // biaya pemuatan model.
-  useEffect(() => {
-    let hidup = true;
-
-    const denyut = async () => {
-      const base = await resolveApiBase();
-      if (!hidup || !base) return;
-      await backendSiap(base);
-    };
-
-    denyut();
-    const iv = setInterval(denyut, 4 * 60 * 1000);
-    return () => {
-      hidup = false;
-      clearInterval(iv);
-    };
-  }, []);
 
   const busy = phase === "loading";
 
@@ -213,9 +212,10 @@ export default function TriagePanel() {
           {!cameraActive && (
             <div className="capture-bar">
               <span className="num">{file ? `${file.name} · ${(file.size / 1024).toFixed(0)} KB` : "Belum ada citra"}</span>
-              <button type="button" className="btn" onClick={startCamera} disabled={busy}>
+              {cameraPending && <button type="button" className="btn" onClick={stopCamera}>Batal</button>}
+              <button type="button" className="btn" onClick={startCamera} disabled={busy || cameraPending || !active}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                Kamera
+                {cameraPending ? "Membuka kamera…" : "Kamera"}
               </button>
             </div>
           )}
@@ -229,7 +229,8 @@ export default function TriagePanel() {
           {phase === "idle" && !file && <LaneLegend />}
           {busy && <>
             <ClusterMap scanning />
-            <p className="scan-note">Mencocokkan citra ke centroid terdekat. Permintaan pertama bisa butuh hingga satu menit saat backend bangun.</p>
+            <p className="scan-note">Mencocokkan foto dengan klaster. Tunggu hasil dari backend.</p>
+            <button type="button" className="btn" onClick={reset}>Batalkan triase</button>
           </>}
           {phase === "done" && result && <ResultCard data={result} onReset={reset} />}
           {phase === "error" && (
