@@ -53,6 +53,12 @@ with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as profile:
             wait("document.querySelector('#tab-0') && document.querySelector('.brand-mark').complete")
             time.sleep(2)
             assert not js('document.documentElement.scrollWidth > innerWidth')
+            assert js("document.querySelector('.scan-note').textContent.includes('Hugging Face belum diketahui')"), 'Retention disclosure missing'
+            assert js("document.querySelector('#input-title').textContent === 'Foto barang' && document.querySelector('#verdict-title').textContent === 'Hasil triase'")
+            assert not js("document.body.innerText.includes('Tentukan jalur barang.') || document.body.innerText.includes('14 centroid · CLIP ViT-H/14')"), 'Redundant copy returned'
+            shot = call('Page.captureScreenshot', {'format': 'png'})['data']
+            with open(f'/tmp/ewise-console-{width}.png', 'wb') as image:
+                image.write(base64.b64decode(shot))
             # Invalid file stays local; valid image and preview survive tab changes.
             js("document.querySelector('input[type=file]').dispatchEvent(new Event('focus'))")
             js("(()=>{const i=document.querySelector('input[type=file]'),d=new DataTransfer();d.items.add(new File(['bad'],'bad.txt',{type:'text/plain'}));i.files=d.files;i.dispatchEvent(new Event('change',{bubbles:true}));})()")
@@ -66,6 +72,11 @@ with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as profile:
             call('Input.dispatchKeyEvent', {'type': 'keyUp', 'key': 'ArrowRight', 'code': 'ArrowRight'})
             wait("document.querySelector('#tab-1').getAttribute('aria-selected')==='true' && !!document.querySelector('.cluster-key')")
             assert js("document.activeElement.id === 'tab-1'")
+            for selector in ['.dossier-detail', '.research-method']:
+                assert js(f"!document.querySelector('{selector}').open"), selector
+                js(f"document.querySelector('{selector} summary').click()")
+                assert js(f"document.querySelector('{selector}').open"), selector
+                js(f"document.querySelector('{selector} summary').click()")
             for cluster in range(14):
                 js(f"document.querySelectorAll('.cluster-key')[{cluster}].click()")
                 assert js(f"document.querySelector('.dossier-id').textContent==='C{cluster}'")

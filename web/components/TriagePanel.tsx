@@ -188,14 +188,12 @@ export default function TriagePanel({ active = true }: { active?: boolean }) {
 
   return (
     <div className="console">
-      <div className="workspace-heading"><h2>Tentukan jalur barang.</h2><p>Unggah satu foto untuk mencocokkan <br />barang dengan klaster riset.</p></div>
       <p className="sr-only" role="status" aria-live="polite">{busy ? "Citra dikirim, menunggu backend." : phase === "done" ? "Hasil triase tersedia." : phase === "error" ? `Gagal: ${error}` : ""}</p>
 
       <section className="panel capture-panel" aria-labelledby="input-title" onDrop={onDrop} onDragOver={onDragOver}>
-        <div className="panel-h"><h2 id="input-title">Citra barang</h2><span className="num spec">JPG · PNG · WebP ≤ 3 MB</span></div>
-        <div className="ticks" aria-hidden="true" />
+        <div className="panel-h"><h2 id="input-title">Foto barang</h2><span className="num spec">JPG · PNG · WebP ≤ 3 MB</span></div>
         <div className="panel-b">
-          <p className="scan-note">Foto langsung dikirim ke server E-WISE dan Hugging Face untuk analisis, termasuk metadata jika ada. Hindari wajah, dokumen, dan informasi pribadi.</p>
+          <p className="scan-note">Foto langsung dikirim ke E-WISE dan Hugging Face, termasuk metadata jika ada. Lama penyimpanan di Hugging Face belum diketahui. Hindari wajah, dokumen, dan data pribadi.</p>
           {cameraActive ? (
             <div className="camera">
               <video ref={videoRef} autoPlay playsInline muted aria-label="Pratinjau kamera" />
@@ -215,7 +213,7 @@ export default function TriagePanel({ active = true }: { active?: boolean }) {
           )}
           {!cameraActive && (
             <div className="capture-bar">
-              <span className="num">{file ? `${file.name} · ${(file.size / 1024).toFixed(0)} KB` : "Belum ada citra"}</span>
+              <span className="num">{file ? `${file.name} · ${(file.size / 1024).toFixed(0)} KB` : "Satu foto per triase"}</span>
               {cameraPending && <button type="button" className="btn" onClick={stopCamera}>Batal</button>}
               <button type="button" className="btn" onClick={startCamera} disabled={busy || cameraPending || !active}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -227,13 +225,12 @@ export default function TriagePanel({ active = true }: { active?: boolean }) {
       </section>
 
       <section className="panel verdict-panel" aria-labelledby="verdict-title" aria-busy={busy}>
-        <div className="panel-h"><h2 id="verdict-title">Putusan jalur</h2><span className="num spec">14 centroid · CLIP ViT-H/14</span></div>
-        <div className="ticks" aria-hidden="true" />
+        <div className="panel-h"><h2 id="verdict-title">Hasil triase</h2></div>
         <div className="panel-b">
           {phase === "idle" && !file && <LaneLegend />}
           {busy && <>
             <ClusterMap scanning />
-            <p className="scan-note">Mencocokkan foto dengan klaster. Tunggu hasil dari backend.</p>
+            <p className="scan-note">Mencocokkan foto dengan klaster…</p>
             <button type="button" className="btn" onClick={reset}>Batalkan triase</button>
           </>}
           {phase === "done" && result && <ResultCard data={result} onReset={reset} />}
@@ -255,8 +252,8 @@ const LEGEND: LaneCode[] = ["P1", "P2", "P3", "MR"];
 function LaneLegend() {
   return (
     <div className="verdict-empty">
-      <h3>Menunggu foto barang.</h3><p>Hasil akan menunjukkan jalur penanganan atau meminta pemeriksaan manual.</p>
-      <ul className="lane-legend" style={{ marginTop: 16 }}>
+      <h3>Menunggu foto</h3>
+      <ul className="lane-legend" aria-label="Panduan jalur penanganan" style={{ marginTop: 16 }}>
         {LEGEND.map(code => (
           <li key={code}>
             <span className="num">{code}</span>
@@ -316,7 +313,7 @@ function ResultCard({ data, onReset }: { data: Prediction; onReset: () => void }
 
       {zsEntries.length > 0 && (
         <details className="zs block">
-          <summary>Similaritas zero-shot, 3 teratas</summary>
+          <summary>Detail zero-shot</summary>
           {zsEntries.map((zs, i) => (
             <div key={zs.label}>
               <div className="zs-row num"><span>{zs.label}</span><span className="dim">{fixed4(zs.similarity)}</span></div>
