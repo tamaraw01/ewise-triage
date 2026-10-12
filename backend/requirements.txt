@@ -4,4 +4,4 @@ python-multipart==0.0.20
 pillow==11.1.0
 numpy==2.2.1
 safetensors>=0.4
-open_clip_torch==2.29.0
+open_clip_torch==3.3.0
