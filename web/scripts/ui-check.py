@@ -72,6 +72,7 @@ with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as profile:
             call('Input.dispatchKeyEvent', {'type': 'keyUp', 'key': 'ArrowRight', 'code': 'ArrowRight'})
             wait("document.querySelector('#tab-1').getAttribute('aria-selected')==='true' && !!document.querySelector('.cluster-key')")
             assert js("document.activeElement.id === 'tab-1'")
+            wait("!!document.querySelector('.cluster-field canvas')")
             for selector in ['.dossier-detail', '.research-method']:
                 assert js(f"!document.querySelector('{selector}').open"), selector
                 js(f"document.querySelector('{selector} summary').click()")
@@ -80,7 +81,30 @@ with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as profile:
             for cluster in range(14):
                 js(f"document.querySelectorAll('.cluster-key')[{cluster}].click()")
                 assert js(f"document.querySelector('.dossier-id').textContent==='C{cluster}'")
+                assert js(f"document.querySelector('.field-label').textContent==='C{cluster}'")
+                assert js("(()=>{const a=document.querySelector('.field-label').getBoundingClientRect(),b=document.querySelector('.cluster-field').getBoundingClientRect();return a.bottom<=b.top && a.left>=0 && a.right<=innerWidth})()"), 'Label overlaps plot or clips'
+                assert js("[...document.querySelectorAll('.cluster-key')].length===14 && [...document.querySelectorAll('.cluster-key')].every(b=>{const r=b.getBoundingClientRect();return r.width>=44 && r.height>=44})"), 'Cluster tap targets'
+                assert js("document.querySelector('.dossier-action p').textContent.length>0 && document.querySelector('.dossier-note').textContent.length>0 && document.querySelectorAll('.dossier-detail dd').length===3"), 'Incomplete selected detail'
+            if width <= 390:
+                assert js("[...document.querySelectorAll('.cluster-atlas .spec,.dossier-title .spec,.facts dt,figcaption,.dossier-note')].every(e=>parseFloat(getComputedStyle(e).fontSize)>=14)"), 'Small mobile metadata'
+                assert js("getComputedStyle(document.querySelector('.facts > div')).display==='grid'"), 'Mobile facts did not reflow'
+            call('Page.bringToFront')
+            js("document.querySelectorAll('.cluster-key')[12].focus()")
+            assert js("document.activeElement.textContent==='C12'"), 'Cluster focus failed'
+            call('Input.dispatchKeyEvent', {'type': 'keyDown', 'key': 'Enter', 'code': 'Enter', 'text': '\r', 'windowsVirtualKeyCode': 13})
+            call('Input.dispatchKeyEvent', {'type': 'keyUp', 'key': 'Enter', 'code': 'Enter', 'windowsVirtualKeyCode': 13})
+            wait("document.querySelector('.dossier-id').textContent==='C12'")
+            assert js("getComputedStyle(document.activeElement).outlineStyle !== 'none'"), 'Keyboard focus missing'
+            js("document.querySelectorAll('.cluster-key')[13].click();document.activeElement.blur();scrollTo(0,0)")
+            time.sleep(.4)
+            assert js("document.querySelectorAll('.cluster-key[aria-pressed=true]').length === 1 && document.querySelectorAll('.c-row[aria-pressed=true]').length === 1")
+            wait("getComputedStyle(document.querySelector('.cluster-key[aria-pressed=true]')).backgroundColor === 'rgb(167, 186, 131)'")
+            assert js("[...document.querySelectorAll('.dossier-title, .dossier-action')].every(e => ['none', 'matrix(1, 0, 0, 1, 0, 0)'].includes(getComputedStyle(e).transform))"), 'Dossier motion did not settle'
+            shot = call('Page.captureScreenshot', {'format': 'png'})['data']
+            with open(f'/tmp/ewise-webgl-{width}.png', 'wb') as image:
+                image.write(base64.b64decode(shot))
             assert not js('document.documentElement.scrollWidth > innerWidth')
+            assert js("(()=>{const css=getComputedStyle(document.documentElement), lum=n=>{const c=css.getPropertyValue(n).trim().slice(1).match(/../g).map(x=>parseInt(x,16)/255).map(x=>x<=.04045?x/12.92:((x+.055)/1.055)**2.4);return c[0]*.2126+c[1]*.7152+c[2]*.0722},ratio=(a,b)=>(Math.max(lum(a),lum(b))+.05)/(Math.min(lum(a),lum(b))+.05);return ratio('--bone-dim','--iron')>=4.5 && ratio('--bone','--void')>=4.5 && ratio('--green','--void')>=4.5 && ratio('--edge','--iron')>=3})()"), 'Text/control contrast'
             assert js("[...document.querySelectorAll('.c-row')].every(b=>/jalur .+, \d+ citra, kemurnian .+ persen, margin nama/.test(b.getAttribute('aria-label')))")
             js("document.querySelector('.cluster-field').dispatchEvent(new PointerEvent('pointermove',{clientX:40,clientY:40}));document.querySelector('.cluster-field').dispatchEvent(new PointerEvent('pointerleave'))")
             for motion in ['reduce', 'no-preference']:
@@ -94,9 +118,15 @@ with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as profile:
             assert js("document.querySelector('.drop img').src") == preview
             js("document.querySelector('#tab-1').click()")
             wait("!!document.querySelector('.cluster-field canvas')")
+            time.sleep(.4)  # Workspace transform must settle before screen-coordinate hit testing.
             js("document.querySelector('.cluster-field canvas').dispatchEvent(new Event('webglcontextlost',{cancelable:true}))")
             wait("!document.querySelector('.cluster-field canvas')")
             assert js("!!document.querySelector('#panel-1 svg')")
+            assert js("(()=>{const a=document.querySelector('.field-label').getBoundingClientRect(),b=document.querySelector('.cluster-map').getBoundingClientRect();return a.bottom<=b.top && a.right<=innerWidth})()"), 'Fallback label overlaps plot'
+            assert js("document.querySelectorAll('#panel-1 svg text').length===0"), 'Scaled SVG label returned'
+            for cluster in range(14):
+                js(f"document.querySelectorAll('.cluster-key')[{cluster}].click()")
+                wait(f"document.querySelector('.dossier-id').textContent==='C{cluster}' && document.querySelector('.field-label').textContent==='C{cluster}'")
             point = js("(()=>{for(const p of document.querySelectorAll('#panel-1 circle')){if(p.dataset.cluster==='13')continue;const q=new DOMPoint(+p.getAttribute('cx'),+p.getAttribute('cy')).matrixTransform(p.getScreenCTM());if(document.elementFromPoint(q.x,q.y)===p)return {x:q.x,y:q.y,id:p.dataset.cluster};}})()")
             assert point, 'No visible SVG point hit target'
             call('Input.dispatchMouseEvent', {'type': 'mousePressed', 'x': point['x'], 'y': point['y'], 'button': 'left', 'clickCount': 1})

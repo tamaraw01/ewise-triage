@@ -32,7 +32,6 @@ const css = (name: string) => new THREE.Color(getComputedStyle(document.document
 
 export default function ClusterField({ selected, onSelect }: { selected: number; onSelect: (id: number) => void }) {
   const host = useRef<HTMLDivElement>(null);
-  const label = useRef<HTMLSpanElement>(null);
   const api = useRef<{ select: (id: number) => void } | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -56,14 +55,6 @@ export default function ClusterField({ selected, onSelect }: { selected: number;
       pos[i * 3 + 1] = -(p.y - minY - ry / 2) * sy;
       cl[i] = p.c;
     });
-    const means = new Map<number, THREE.Vector3>();
-    for (const id of new Set(scatter.map(p => p.c))) {
-      const idx = scatter.flatMap((p, i) => (p.c === id ? [i] : []));
-      // Label anchor: cluster x-mean, above its topmost point, so the chip never hides it.
-      const x = idx.reduce((a, i) => a + pos[i * 3], 0) / idx.length;
-      means.set(id, new THREE.Vector3(x, Math.max(...idx.map(i => pos[i * 3 + 1])), 0));
-    }
-
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
     geo.setAttribute("aCluster", new THREE.BufferAttribute(cl, 1));
@@ -101,11 +92,6 @@ export default function ClusterField({ selected, onSelect }: { selected: number;
       const moving = Math.abs(tilt.y * 0.22 - field.rotation.x) + Math.abs(tilt.x * 0.3 - field.rotation.y) > 0.0001;
       field.updateMatrixWorld();
       renderer.render(scene, camera);
-      const m = means.get(u.uSel.value);
-      if (m && label.current) {
-        const { x, y } = project(m.clone().setZ(0.12));
-        label.current.style.transform = `translate(${x}px, ${y - 34}px) translateX(-50%)`;
-      }
       if (moving) invalidate();
     };
     const invalidate = () => { if (!raf && visible && !document.hidden) raf = requestAnimationFrame(frame); };
@@ -172,8 +158,9 @@ export default function ClusterField({ selected, onSelect }: { selected: number;
 
   if (failed) return <ClusterMap highlightedId={selected} onSelect={onSelect} />;
   return (
-    <div ref={host} className="cluster-field" role="img" aria-label={`Sebaran klaster riset, C${selected} disorot. Pilihan tersedia di bawah peta.`}>
-      <span ref={label} className="field-label num" aria-hidden="true">C{selected}</span>
-    </div>
+    <>
+      <span className="field-label num" aria-hidden="true">C{selected}</span>
+      <div ref={host} className="cluster-field" role="img" aria-label={`Sebaran klaster riset, C${selected} disorot. Pilihan tersedia di bawah peta.`} />
+    </>
   );
 }

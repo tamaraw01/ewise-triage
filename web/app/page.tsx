@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import TriagePanel from "@/components/TriagePanel";
@@ -11,6 +13,8 @@ const ClusterField = dynamic(() => import("@/components/ClusterField"), {
 import meta from "@/data/meta.json";
 import { CLUSTERS_META, LANES, fixed4, type LaneCode } from "@/lib/data";
 
+gsap.registerPlugin(useGSAP);
+
 const sections = ["Konsol", "Cluster Explorer"] as const;
 type Section = (typeof sections)[number];
 const LANE_ORDER: LaneCode[] = ["P1", "P2", "P3", "MR"];
@@ -19,6 +23,18 @@ const clusters = Object.values(CLUSTERS_META);
 export default function Page() {
   const [section, setSection] = useState<Section>("Konsol");
   const [explorerOpened, setExplorerOpened] = useState(false);
+  const stage = useRef<HTMLDivElement>(null);
+  useGSAP(() => {
+    const motion = gsap.matchMedia();
+    motion.add("(prefers-reduced-motion: no-preference)", () => {
+      const panel = stage.current?.querySelector('[role="tabpanel"]:not([hidden])');
+      if (!panel) return;
+      gsap.timeline({ defaults: { ease: "power2.out" } })
+        .from(panel.querySelectorAll(".workspace-heading"), { y: 6, duration: 0.2 })
+        .from(panel.querySelectorAll(".capture-panel, .verdict-panel, .explorer"), { y: 10, duration: 0.24 }, 0.04);
+    });
+    return () => motion.revert();
+  }, { scope: stage, dependencies: [section], revertOnUpdate: true });
   return (
     <main id="konten" className="dashboard">
       <header className="dashboard-header">
@@ -33,7 +49,7 @@ export default function Page() {
           document.getElementById(`tab-${next}`)?.focus();
         }}>{name}</button>)}
       </nav>
-      <div className="dashboard-stage">
+      <div ref={stage} className="dashboard-stage">
         <div id="panel-0" role="tabpanel" aria-labelledby="tab-0" hidden={section !== "Konsol"}><TriagePanel active={section === "Konsol"} /></div>
         <div id="panel-1" role="tabpanel" aria-labelledby="tab-1" hidden={section !== "Cluster Explorer"}>{explorerOpened && <Explorer />}</div>
       </div>
@@ -44,6 +60,14 @@ export default function Page() {
 
 function Explorer() {
   const [selected, setSelected] = useState(0);
+  const dossier = useRef<HTMLElement>(null);
+  useGSAP(() => {
+    const motion = gsap.matchMedia();
+    motion.add("(prefers-reduced-motion: no-preference)", () => {
+      gsap.from(".dossier-title, .facts, .dossier-action", { y: 5, duration: 0.2, stagger: 0.025, ease: "power2.out" });
+    });
+    return () => motion.revert();
+  }, { scope: dossier, dependencies: [selected], revertOnUpdate: true });
   const c = CLUSTERS_META[selected];
   const contested = c.lane === "MR";
   return (
@@ -58,7 +82,7 @@ function Explorer() {
           </div>
           <figcaption>Pilih titik atau ID klaster. Proyeksi ini bukan ruang inferensi.</figcaption>
         </figure>
-        <article className="cluster-dossier" aria-live="polite">
+        <article ref={dossier} className="cluster-dossier" aria-live="polite">
           <div className="dossier-title"><span className="dossier-id num">C{c.id}</span><div><h3>{c.sub}</h3><span className={`spec${c.lane === "P1" ? " is-hazard" : ""}`}>{c.lane} · {LANES[c.lane].desc}</span></div></div>
           {contested && <p className="caveat"><strong>Nama zero-shot terbantah. </strong>{c.id === 9 ? "C9 campuran; kelas dominan Keyboard hanya 25,8%." : "C11 dinamai Mobile, tetapi kelas dominan Player mencapai 99,6%."} Wajib peninjauan manual.</p>}
           <dl className="facts">
