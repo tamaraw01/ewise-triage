@@ -13,26 +13,28 @@ functions = ast.Module(body=[n for n in tree.body if isinstance(n, ast.FunctionD
 payload = {"status": "classified", "cluster": {"id": 4}, "margin": 0.12}
 seen = []
 def classify(data):
-    with Image.open(io.BytesIO(data)) as image:
-        assert image.mode == "RGB"
     seen.append(data)
     return payload
+def png(mode):
+    buf = io.BytesIO()
+    Image.new(mode, (8, 8)).save(buf, "PNG")
+    return buf.getvalue()
 engine = types.SimpleNamespace(classify=classify)
-namespace = {"Image": Image, "io": io, "json": json, "__file__": str(source),
+namespace = {"json": json, "__file__": str(source),
              "gr": types.SimpleNamespace(Error=RuntimeError),
              "engine_onnx": types.SimpleNamespace(tersedia=lambda: True, classify=classify)}
 exec(compile(functions, str(source), "exec"), namespace)
-assert namespace["predict_image"](Image.new("RGB", (8, 8))) == payload
+assert namespace["predict_image"](png("RGB")) == payload
 namespace["engine_onnx"].tersedia = lambda: False
 old = sys.modules.get("engine")
 sys.modules["engine"] = engine
 try:
-    assert namespace["predict_image"](Image.new("RGBA", (8, 8))) == payload
+    assert namespace["predict_image"](png("RGBA")) == payload
 finally:
     if old is None:
         del sys.modules["engine"]
     else:
         sys.modules["engine"] = old
-assert len(seen) == 2
+assert seen == [png("RGB"), png("RGBA")]  # encoded bytes pass through untouched
 assert namespace["get_clusters"]() == json.loads(source.with_name("artifacts").joinpath("clusters.json").read_text())
 print("PASS: Gradio adapters call byte-based classify; return direct prediction; metadata loads")

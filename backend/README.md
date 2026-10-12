@@ -44,3 +44,37 @@ Ambang margin 0,0297 adalah persentil 5 margin leave-one-out pada 2.660 citra
 tersebut. Validasi leave-one-out: kesepakatan klaster 95,94%, akurasi label 86,62%.
 
 Label adalah dugaan taksonomis dari kedekatan visual, bukan pemeriksaan isi fisik barang.
+
+
+## Patch Gradio input guard (Space existing)
+
+Space `Aditams/ewise-backend` memakai Gradio **6.29.0**, Python **3.12**,
+`app_file: app.py` (metadata publik diperiksa 2026-10-12). Repo GitHub ini
+bukan sumber auto-sync Space; perubahan lokal belum mengubah backend live.
+
+Untuk rilis patch ini, tinjau dan sinkronkan **hanya**:
+- `app_gradio.py` sebagai `app.py` di repo Space.
+- `image_input.py` (wajib tersedia untuk kedua engine).
+- `requirements_gradio.txt` sebagai `requirements.txt`, sambil mempertahankan
+  dependensi/model tambahan yang masih dipakai Space.
+- Frontmatter README Space: pertahankan `sdk_version: 6.29.0`,
+  `python_version: "3.12"`, `app_file: app.py`.
+
+Gunakan kredensial HF write yang baru/valid dan disetujui; jangan gunakan token
+legacy yang terekspos atau skrip uploader lokal berisi rahasia. Commit/push
+repo Space memicu rebuild HF. Jangan salin seluruh folder backend/log/.venv
+atau rahasia. Verifikasi ulang `/gradio_api/call/predict` dan SSE setelah
+rebuild. Dokumen ini bukan bukti patch telah dideploy.
+
+Verifikasi lokal tanpa bobot model:
+```bash
+python backend/test_image_input.py
+python backend/test_gradio_contract.py
+# Python 3.12, gradio==6.29.0, fastapi==0.143.0, pillow==11.1.0:
+python backend/test_gradio_runtime.py
+```
+Tes runtime menjalankan Gradio nyata dengan engine **palsu**, bukan inferensi
+model. Memeriksa data URL/FileData yang dipakai frontend, upload path, batas
+12 MiB sebelum PIL.open, dan PNG 6000x5000 sebelum load/convert/engine.
+Guard ini tidak membatasi seluruh body HTTP/antrean/cache Gradio. Batas 3 MB
+frontend/proxy tetap lebih kecil; jangan menganggap backend telah diaudit penuh.
