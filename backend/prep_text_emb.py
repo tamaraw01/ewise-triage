@@ -11,6 +11,7 @@ runtime tidak perlu memuat menara teks sama sekali.
 from __future__ import annotations
 
 import json
+import os
 import resource
 import time
 from pathlib import Path
@@ -20,7 +21,7 @@ import torch
 from safetensors.torch import safe_open
 
 SNAP = Path(
-    "/home/aditama/.cache/huggingface/hub/"
+    os.environ.get("HF_HUB_CACHE", str(Path.home() / ".cache/huggingface/hub")) + "/"
     "models--laion--CLIP-ViT-H-14-laion2B-s32B-b79K/snapshots"
 )
 ART = Path(__file__).parent / "artifacts"

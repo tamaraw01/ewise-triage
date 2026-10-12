@@ -41,6 +41,7 @@ export default function ClusterField({ selected, onSelect }: { selected: number;
     if (!el) return;
     let renderer: THREE.WebGLRenderer;
     try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reflect external WebGL initialization failure in the fallback UI.
     catch { setFailed(true); return; }
 
     const xs = scatter.map(p => p.x), ys = scatter.map(p => p.y);

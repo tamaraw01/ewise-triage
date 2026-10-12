@@ -113,7 +113,7 @@ async def predict(file: UploadFile = File(...)):
     if file.content_type not in ALLOWED:
         raise HTTPException(415, f"Tipe berkas tidak didukung: {file.content_type}")
 
-    data = await file.read()
+    data = await file.read(MAX_BYTES + 1)
     if not data:
         raise HTTPException(400, "Berkas kosong")
     if len(data) > MAX_BYTES:
@@ -123,10 +123,11 @@ async def predict(file: UploadFile = File(...)):
         result = engine.classify(data)
     except HTTPException:
         raise
-    except Exception as exc:
+    except Exception:
+        logging.getLogger("ewise").exception("Inferensi gagal")
         return JSONResponse(
             status_code=500,
-            content={"error": "Gagal memproses citra", "detail": str(exc)[:200]},
+            content={"error": "Gagal memproses citra"},
         )
 
     result["filename"] = file.filename

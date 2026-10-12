@@ -9,7 +9,7 @@ import urllib.request
 import websocket
 
 with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as profile:
-    chrome = subprocess.Popen(['google-chrome', '--headless=new', '--no-sandbox', '--remote-allow-origins=*', '--remote-debugging-port=9454', f'--user-data-dir={profile}', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', 'about:blank'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    chrome = subprocess.Popen(['google-chrome', '--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--remote-allow-origins=*', '--remote-debugging-port=9454', f'--user-data-dir={profile}', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', 'about:blank'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         for _ in range(80):
             try:
@@ -19,7 +19,7 @@ with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as profile:
                 time.sleep(.25)
         else:
             raise RuntimeError('Chrome CDP unavailable')
-        ws = websocket.create_connection(next(t['webSocketDebuggerUrl'] for t in tabs if t['type'] == 'page'), timeout=15)
+        ws = websocket.create_connection(next(t['webSocketDebuggerUrl'] for t in tabs if t['type'] == 'page'), timeout=60)
         counter = 0
         errors = []
         def call(method, params=None):

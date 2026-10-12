@@ -10,7 +10,7 @@ Preprocessing direplikasi dengan Pillow + NumPy agar torchvision tidak diperluka
 """
 from __future__ import annotations
 
-import io
+from image_input import decode_image
 import json
 import logging
 import threading
@@ -120,7 +120,7 @@ def _preprocess(img: Image.Image, prep: dict) -> np.ndarray:
 def embed(image_bytes: bytes) -> np.ndarray:
     """Citra -> vektor CLIP ternormalisasi L2 (1024 dimensi)."""
     st = get_state()
-    img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    img = decode_image(image_bytes)
     x = _preprocess(img, st["prep"])
     v = st["sess"].run(None, {st["input_name"]: x})[0][0].astype(np.float32)
     return (v / max(float(np.linalg.norm(v)), 1e-12)).astype(np.float32)

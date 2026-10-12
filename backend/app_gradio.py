@@ -15,26 +15,27 @@ def predict_image(image):
         image = Image.fromarray(image)
         
     try:
+        buffer = io.BytesIO()
+        image.convert("RGB").save(buffer, format="PNG")
         if engine_onnx.tersedia():
-            res = engine_onnx.predict(image)
+            res = engine_onnx.classify(buffer.getvalue())
         else:
             import engine
-            res = engine.predict(image)
-            
-        return json.dumps({
-            "status": "ok",
-            "prediction": res
-        })
-    except Exception as e:
-        return json.dumps({"error": str(e)})
+            res = engine.classify(buffer.getvalue())
+        return res
+    except Exception:
+        import logging
+        logging.getLogger("ewise").exception("Inferensi gagal")
+        raise gr.Error("Gagal memproses citra") from None
+
 
 def get_health():
     return json.dumps({"status": "ok", "engine": "onnx-int8" if engine_onnx.tersedia() else "torch-fp32"})
 
 def get_clusters():
     try:
-        from engine import load_clusters
-        return json.dumps(load_clusters())
+        from pathlib import Path
+        return json.loads((Path(__file__).parent / "artifacts" / "clusters.json").read_text())
     except Exception:
         # Fallback if engine is completely missing in ONNX only mode
         return json.dumps({"error": "Clusters metadata unavailable in strict ONNX mode"})

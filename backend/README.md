@@ -17,7 +17,18 @@ cosine similarity ke 14 centroid klaster hasil EXP 14 -> label zero-shot klaster
 + margin top1-top2. Margin di bawah 0,0297 dikembalikan sebagai `review`
 tanpa label, bukan sebagai tebakan.
 
-## Endpoint
+## Menjalankan backend
+
+Ikuti [panduan lokal dan Docker](../README.md#menjalankan-lokal) dari akar
+repositori. `app.py` menyediakan FastAPI dengan jalur PyTorch atau ONNX,
+bergantung pada ketersediaan bobot ONNX. Bobot model tidak disertakan dalam Git.
+
+`app_gradio.py` adalah entry point Gradio terpisah. Proxy frontend menggunakan
+protokol antrean Gradio, bukan endpoint multipart FastAPI di bawah. Metadata
+Space pada dokumen ini memilih Docker; `Dockerfile` menjalankan `app.py`.
+Konfigurasi deployment harus sesuai dengan protokol yang digunakan frontend.
+
+## Endpoint FastAPI
 
 | Metode | Jalur | Keterangan |
 |---|---|---|

@@ -58,6 +58,7 @@ export default function TriagePanel({ active = true }: { active?: boolean }) {
   }, [releaseCamera]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Stop external camera tracks and sync controls when this tab becomes hidden.
     if (!active) stopCamera();
     return releaseCamera;
   }, [active, releaseCamera, stopCamera]);
@@ -170,6 +171,7 @@ export default function TriagePanel({ active = true }: { active?: boolean }) {
   // Auto-submit saat file terisi dari DragDrop / Browse / Capture Kamera
   useEffect(() => {
     if (file && phase === "idle") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Start the external analysis request and sync its loading state for each selected file or retry.
       submitAnalysis();
     }
   }, [file, phase, submitAnalysis]);
@@ -193,6 +195,7 @@ export default function TriagePanel({ active = true }: { active?: boolean }) {
         <div className="panel-h"><h2 id="input-title">Citra barang</h2><span className="num spec">JPG · PNG · WebP ≤ 3 MB</span></div>
         <div className="ticks" aria-hidden="true" />
         <div className="panel-b">
+          <p className="scan-note">Foto langsung dikirim ke server E-WISE dan Hugging Face untuk analisis, termasuk metadata jika ada. Hindari wajah, dokumen, dan informasi pribadi.</p>
           {cameraActive ? (
             <div className="camera">
               <video ref={videoRef} autoPlay playsInline muted aria-label="Pratinjau kamera" />
@@ -205,6 +208,7 @@ export default function TriagePanel({ active = true }: { active?: boolean }) {
             <div className={`drop${previewUrl ? " has-image" : ""}`}>
               <input type="file" accept="image/jpeg,image/png,image/webp" aria-label="Pilih citra untuk triase" disabled={busy} onChange={handleFileChange} />
               {previewUrl
+                // eslint-disable-next-line @next/next/no-img-element -- User-selected blob URL stays in the browser; server image optimization cannot fetch it.
                 ? <img src={previewUrl} alt="Citra yang sedang ditriase" />
                 : <div className="drop-copy"><svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M16 5H5v11M32 5h11v11M5 32v11h11M43 32v11H32M24 33V15m-7 7 7-7 7 7" /></svg><b>Pilih foto barang</b><span>atau seret berkas ke bidang ini</span><small>Satu barang, latar polos, pencahayaan cukup.</small></div>}
             </div>

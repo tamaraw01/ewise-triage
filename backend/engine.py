@@ -6,7 +6,7 @@ Margin di bawah ambang empiris -> status 'review', tanpa label.
 """
 from __future__ import annotations
 
-import io
+from image_input import decode_image
 import json
 import logging
 import os
@@ -154,7 +154,7 @@ def get_state() -> dict:
 def embed(image_bytes: bytes) -> np.ndarray:
     """Citra -> vektor CLIP ternormalisasi L2 (1024 dimensi)."""
     st = get_state()
-    img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    img = decode_image(image_bytes)
     tensor = st["preprocess"](img).unsqueeze(0).to(st["device"])
     with torch.no_grad():
         v = st["model"].encode_image(tensor)

@@ -12,7 +12,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY app.py engine.py engine_onnx.py image_input.py prep_text_emb.py ./
+COPY artifacts/ ./artifacts/
 
 # HF Space menjalankan di port 7860
 EXPOSE 7860

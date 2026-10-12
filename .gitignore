@@ -20,7 +20,10 @@ backend/artifacts/proj
 backend/artifacts/transformer.*
 .env*
 
-# Internal: catatan desain, skrip deploy lokal, log, eksperimen Kaggle
+# Local design notes, deployment files, logs, and experiment workspaces
+/AGENTS.md
+/CLAUDE.md
+/GEMINI.md
 DESIGN.md
 api_base.txt
 start_tunnel.sh

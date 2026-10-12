@@ -10,7 +10,25 @@ const fail = (error: string, status: number) => NextResponse.json({ error }, { s
 export async function POST(req: NextRequest) {
   if (Number(req.headers.get('content-length')) > MAX_DATA_URL + 200) return fail('Berkas melebihi 3 MB.', 413);
   let url: unknown;
-  try { url = (await req.json())?.data?.[0]?.url; } catch { return fail('Body JSON tidak valid.', 400); }
+  try {
+    const reader = req.body?.getReader();
+    if (!reader) return fail('Body JSON tidak valid.', 400);
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > MAX_DATA_URL + 200) {
+          await reader.cancel();
+          return fail('Berkas melebihi 3 MB.', 413);
+        }
+        chunks.push(value);
+      }
+    } finally { reader.releaseLock(); }
+    url = JSON.parse(Buffer.concat(chunks).toString('utf8'))?.data?.[0]?.url;
+  } catch { return fail('Body JSON tidak valid.', 400); }
   if (typeof url !== 'string') return fail('Kirim satu citra data URL.', 400);
   if (url.length > MAX_DATA_URL) return fail('Berkas melebihi 3 MB.', 413);
   const match = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/]+={0,2})$/.exec(url);
@@ -44,6 +62,6 @@ export async function POST(req: NextRequest) {
     return fail('Backend tidak mengirim hasil lengkap.', 502);
   } catch (error) {
     const timeout = error instanceof DOMException && error.name === 'TimeoutError';
-    return fail(timeout ? 'Backend tidak merespons dalam 90 detik.' : error instanceof Error ? error.message : 'Permintaan backend gagal.', timeout ? 504 : 502);
+    return fail(timeout ? 'Backend tidak merespons dalam 90 detik.' : 'Permintaan backend gagal.', timeout ? 504 : 502);
   }
 }

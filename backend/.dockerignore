@@ -1,0 +1,9 @@
+**/.env*
+**/__pycache__/
+**/*.pyc
+.venv/
+venv/
+upload_to_hf.py
+deploy_hf.py
+*.log
+.git/
