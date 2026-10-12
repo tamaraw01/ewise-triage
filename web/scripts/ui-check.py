@@ -53,7 +53,7 @@ with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as profile:
             wait("document.querySelector('#tab-0') && document.querySelector('.brand-mark').complete")
             time.sleep(2)
             assert not js('document.documentElement.scrollWidth > innerWidth')
-            assert js("document.querySelector('.scan-note').textContent.includes('Hugging Face belum diketahui')"), 'Retention disclosure missing'
+            assert not js("document.body.innerText.includes('Foto langsung dikirim ke E-WISE dan Hugging Face')"), 'Removed notice returned'
             assert js("document.querySelector('#input-title').textContent === 'Foto barang' && document.querySelector('#verdict-title').textContent === 'Hasil triase'")
             assert not js("document.body.innerText.includes('Tentukan jalur barang.') || document.body.innerText.includes('14 centroid · CLIP ViT-H/14')"), 'Redundant copy returned'
             shot = call('Page.captureScreenshot', {'format': 'png'})['data']

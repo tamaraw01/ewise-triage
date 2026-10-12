@@ -193,7 +193,6 @@ export default function TriagePanel({ active = true }: { active?: boolean }) {
       <section className="panel capture-panel" aria-labelledby="input-title" onDrop={onDrop} onDragOver={onDragOver}>
         <div className="panel-h"><h2 id="input-title">Foto barang</h2><span className="num spec">JPG · PNG · WebP ≤ 3 MB</span></div>
         <div className="panel-b">
-          <p className="scan-note">Foto langsung dikirim ke E-WISE dan Hugging Face, termasuk metadata jika ada. Lama penyimpanan di Hugging Face belum diketahui. Hindari wajah, dokumen, dan data pribadi.</p>
           {cameraActive ? (
             <div className="camera">
               <video ref={videoRef} autoPlay playsInline muted aria-label="Pratinjau kamera" />
