@@ -9,8 +9,6 @@ export type SessionItem = {
   id: string; file: File; status: 'queued' | 'loading' | 'done' | 'error' | 'cancelled';
   result?: Prediction; error?: string; review?: { lane: LaneCode; note: string };
 };
-// ponytail: keep one session at 20 images; persistent queues need server storage.
-export const MAX_FILES = 20;
 export const MAX_FILE_BYTES = 3_000_000;
 export function validateFile(file: Pick<File, 'size' | 'type'>): string {
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return 'Format harus JPG, PNG, atau WebP.';

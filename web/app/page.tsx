@@ -19,6 +19,7 @@ const sections = ["Konsol", "Cluster Explorer"] as const;
 type Section = (typeof sections)[number];
 const LANE_ORDER: LaneCode[] = ["P1", "P2", "P3", "MR"];
 const clusters = Object.values(CLUSTERS_META);
+gsap.config({ nullTargetWarn: false }); // panels share one timeline; absent targets are expected
 
 export default function Page() {
   const [section, setSection] = useState<Section>("Konsol");

@@ -36,6 +36,7 @@ backend/upload_to_hf.py
 backend/huggingface_setup.md
 backend/logs/
 kaggle_quant/
+research/
 *.log
 web/README.md
 web/AGENTS.md

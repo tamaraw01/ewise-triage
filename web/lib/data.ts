@@ -8,8 +8,6 @@ export type ScatterPoint = {
 
 export const scatter = scatterRaw as ScatterPoint[];
 
-export const API_BASE = process.env.NEXT_PUBLIC_API_BASE;
-
 export function fixed4(n: number) {
   return n.toFixed(4).replace(".", ",");
 }
