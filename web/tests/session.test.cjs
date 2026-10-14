@@ -23,6 +23,13 @@ test('prediction parser rejects malformed responses, keeps null review labels', 
  assert.deepEqual(session.parsePrediction(prediction(9,'review')),prediction(9,'review'));
  for(const data of [null,{},[],{...prediction(),margin:NaN},{...prediction(),cluster:null}]) assert.throws(()=>session.parsePrediction(data));
 });
+test('ranking accepts signed cosine scores and rejects malformed candidates', () => {
+ const valid = {cluster:4,label:null,similarity:-.3};
+ assert.equal(session.parsePrediction({...prediction(),ranking:[valid]}).ranking[0].similarity,-.3);
+ for(const ranking of [null,{},[null],[{...valid,similarity:NaN}],[{...valid,similarity:1.1}],[{...valid,cluster:2.5}],[{...valid,label:5}]]) {
+  assert.throws(()=>session.parsePrediction({...prediction(),ranking}));
+ }
+});
 const prediction = (id = 4, status = 'classified') => ({ status, margin: .12, threshold: .0297, cluster: { id, label: 'Battery', contested: false, route: 'HAZARD', handling: 'Review physical item' } });
 test('queue runs sequentially, isolates errors and stops before next upload', async () => {
  let active=0, peak=0; const states=[]; let stop=false;

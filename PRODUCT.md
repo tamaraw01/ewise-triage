@@ -13,8 +13,10 @@ menampilkan hasil inferensi dan jalur penanganan P1, P2, P3, atau MR.
 Hasil dengan margin rendah memerlukan pemeriksaan petugas. Antarmuka juga
 menandai C9 dan C11 untuk pemeriksaan manual karena masalah pada klaster acuan.
 
-Cluster Explorer menampilkan sebaran citra, komposisi kelas, dan metrik klaster
-untuk pemeriksaan hasil riset.
+Cluster Explorer menampilkan sebaran citra, pencarian dan filter klaster,
+distribusi ukuran, serta perbandingan dua klaster dari dataset riset.
+Hasil inferensi menampilkan peringkat kandidat dengan similaritas mentah,
+bukan probabilitas benar.
 
 ## Antarmuka
 

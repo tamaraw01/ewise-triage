@@ -24,6 +24,11 @@ export function parsePrediction(value: unknown): Prediction {
       typeof p.cluster.route !== 'string' || typeof p.cluster.handling !== 'string') {
     throw new Error('Respons backend tidak valid. Coba ulang berkas ini.');
   }
+  if (p.ranking !== undefined && (!Array.isArray(p.ranking) || p.ranking.some(r =>
+    !r || !Number.isInteger(r.cluster) || !(r.label === null || typeof r.label === 'string') ||
+    !Number.isFinite(r.similarity) || r.similarity < -1 || r.similarity > 1))) {
+    throw new Error('Respons backend tidak valid. Coba ulang berkas ini.');
+  }
   return p;
 }
 export function reviewItem(item: SessionItem, lane: LaneCode, note: string): SessionItem {

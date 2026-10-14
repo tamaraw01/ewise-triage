@@ -307,6 +307,11 @@ function ResultCard({ data, onReset }: { data: Prediction; onReset: () => void }
     : "";
 
   const fill = auto ? "var(--green)" : "var(--bone-dim)";
+  const candidates = (Array.isArray(data.ranking) ? data.ranking : [])
+    .filter(candidate => candidate && Number.isInteger(candidate.cluster) && candidate.cluster >= 0 &&
+      (candidate.label === null || typeof candidate.label === "string") && Number.isFinite(candidate.similarity))
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, 5);
   const zsEntries = (data.zero_shot ?? []).slice(0, 3);
   const maxScore = zsEntries[0]?.similarity || 1;
 
@@ -329,6 +334,30 @@ function ResultCard({ data, onReset }: { data: Prediction; onReset: () => void }
         <span className="label">Margin kecocokan klaster</span>
         <div className="num reading">{fixed4(data.margin)}<small style={{ color: fill }}>{data.margin >= data.threshold ? "di atas ambang" : "di bawah ambang"}</small></div>
         <MarginMeter margin={data.margin} threshold={data.threshold} colorClass={fill} /><p className="dim">Selisih similaritas foto ke dua centroid teratas, bukan probabilitas benar.</p>
+      </div>
+
+      <div className="block">
+        <span className="label">Kandidat klaster</span>
+        <p className="dim">Similaritas foto ke centroid, bukan tingkat keyakinan. Skala batang: −1 sampai 1, nol di tengah.</p>
+        {candidates.length > 0 ? (
+          <ol aria-label="Kandidat menurut similaritas tertinggi" style={{ listStyle: "none", padding: 0, margin: 0 }}>
+            {candidates.map((candidate, i) => {
+              const score = Math.max(-1, Math.min(1, candidate.similarity));
+              return (
+                <li key={`${candidate.cluster}-${i}`}>
+                  <div className="zs-row" style={{ gap: 12 }}>
+                    <span style={{ minWidth: 0, overflowWrap: "anywhere" }}><span className="num">{i + 1}. C{candidate.cluster}</span> · {candidate.label ?? "Nama tidak tersedia"}</span>
+                    <span className="num" style={{ flexShrink: 0 }}>{fixed4(candidate.similarity)}</span>
+                  </div>
+                  <div className="zs-bar" aria-hidden="true" style={{ position: "relative" }}>
+                    <i style={{ position: "absolute", left: `${score < 0 ? 50 + score * 50 : 50}%`, width: `${Math.abs(score) * 50}%`, background: "var(--bone-dim)" }} />
+                    <span style={{ position: "absolute", left: "50%", top: -2, bottom: -2, width: 1, background: "var(--bone)" }} />
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        ) : <p className="dim">Peringkat kandidat tidak tersedia.</p>}
       </div>
 
       <div className="block">
