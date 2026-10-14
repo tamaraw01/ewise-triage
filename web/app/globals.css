@@ -98,7 +98,8 @@ details.zs summary { color:var(--bone-dim); }
 .zs-bar { height:6px; background:var(--edge); margin-top:4px; }
 .zs-bar i { display:block; height:100%; background:var(--bone); }
 .disclaimer { font-size:12px; line-height:1.6; color:var(--bone-dim); border-top:1px solid var(--edge); padding-top:12px; }
-.inline-error { display:flex; flex-direction:column; gap:12px; border:1px solid var(--edge); background:var(--iron-hi); padding:18px; font-size:14px; }
+.inline-error { display:flex; flex-direction:column; align-items:flex-start; gap:12px; border:1px solid var(--edge); background:var(--iron-hi); padding:18px; font-size:14px; overflow-wrap:anywhere; }
+.error-mascot { display:block; height:140px; width:auto; max-width:100%; object-fit:contain; align-self:center; margin-bottom:4px; }
 .status { display:inline-flex; align-items:center; gap:7px; font-weight:600; font-size:12px; width:max-content; max-width:100%; }
 .meter { position:relative; height:8px; background:var(--edge); margin-top:8px; }
 .meter .fill { position:absolute; inset:0 auto 0 0;  }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { fixed4, CLUSTERS_META, LANES, type LaneCode } from "@/lib/data";
 import { submitToBackend } from "@/lib/api";
 import { MarginMeter, StatusPill, IconWarn } from "./Primitives";
@@ -235,6 +236,7 @@ export default function TriagePanel({ active = true }: { active?: boolean }) {
           {phase === "done" && result && <ResultCard data={result} onReset={reset} />}
           {phase === "error" && (
             <div className="inline-error" role="alert">
+              <Image src="/mascot-error.webp" alt="" width={309} height={512} unoptimized className="error-mascot" />
               <b>Triase gagal</b>
               <span className="dim">{error}</span>
               <div><button type="button" className="btn" onClick={() => { setError(""); if (file) setPhase("idle"); else reset(); }}>{file ? "Coba lagi" : "Tutup"}</button></div>
