@@ -45,7 +45,7 @@ test('C9 and C11 are forced to manual review regardless of margin', () => {
  for (const id of [9,11]) {
   const result = {...prediction(id), margin: .5};
   assert.equal(session.automaticLane(result),'MR');
-  assert.equal(session.manualReason(result),'Nama zero-shot klaster bermasalah. Rujukan: bagian 3.7 penelitian E-WISE.');
+  assert.equal(session.manualReason(result),'Jenis perangkat belum dapat dipastikan. Periksa barang secara manual sebelum menentukan jalur penanganan.');
  }
  assert.equal(session.manualReason(prediction(4)),'');
 });

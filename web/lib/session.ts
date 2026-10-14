@@ -38,7 +38,7 @@ export function reviewItem(item: SessionItem, lane: LaneCode, note: string): Ses
   return { ...item, review: { lane, note: note.trim() } };
 }
 export const NAMING_FAILURES = [9, 11];
-export const NAMING_FAILURE_REASON = 'Nama zero-shot klaster bermasalah. Rujukan: bagian 3.7 penelitian E-WISE.';
+export const NAMING_FAILURE_REASON = 'Jenis perangkat belum dapat dipastikan. Periksa barang secara manual sebelum menentukan jalur penanganan.';
 export function manualReason(result: Prediction) {
   return NAMING_FAILURES.includes(result.cluster.id) ? NAMING_FAILURE_REASON : '';
 }

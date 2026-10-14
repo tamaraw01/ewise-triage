@@ -333,12 +333,12 @@ function ResultCard({ data, onReset }: { data: Prediction; onReset: () => void }
       <div className="block">
         <span className="label">Margin kecocokan klaster</span>
         <div className="num reading">{fixed4(data.margin)}<small style={{ color: fill }}>{data.margin >= data.threshold ? "di atas ambang" : "di bawah ambang"}</small></div>
-        <MarginMeter margin={data.margin} threshold={data.threshold} colorClass={fill} /><p className="dim">Selisih similaritas foto ke dua centroid teratas, bukan probabilitas benar.</p>
+        <MarginMeter margin={data.margin} threshold={data.threshold} colorClass={fill} /><p className="dim">Selisih skor kecocokan dua klaster teratas. Bukan probabilitas hasil benar.</p>
       </div>
 
       <div className="block">
         <span className="label">Kandidat klaster</span>
-        <p className="dim">Similaritas foto ke centroid, bukan tingkat keyakinan. Skala batang: −1 sampai 1, nol di tengah.</p>
+        <p className="dim">Skor kecocokan foto dengan tiap klaster, bukan tingkat keyakinan. Skala: −1 sampai 1.</p>
         {candidates.length > 0 ? (
           <ol aria-label="Kandidat menurut similaritas tertinggi" style={{ listStyle: "none", padding: 0, margin: 0 }}>
             {candidates.map((candidate, i) => {
@@ -369,7 +369,7 @@ function ResultCard({ data, onReset }: { data: Prediction; onReset: () => void }
 
       {zsEntries.length > 0 && (
         <details className="zs block">
-          <summary>Detail zero-shot</summary>
+          <summary>Detail label</summary>
           {zsEntries.map((zs, i) => (
             <div key={zs.label}>
               <div className="zs-row num"><span>{zs.label}</span><span className="dim">{fixed4(zs.similarity)}</span></div>

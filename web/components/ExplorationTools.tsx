@@ -40,7 +40,7 @@ export default function ExplorationTools({ selected, onSelect }: { selected: num
         <div className="exploration-filters">
           <label className="search-label">Cari klaster<input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="ID, perangkat, atau label" /></label>
           <label>Jalur<select value={lane} onChange={event => setLane(event.target.value)}><option value="all">Semua jalur</option>{lanes.map(code => <option key={code} value={code}>{code} · {LANES[code].desc}</option>)}</select></label>
-          <label>Bukti penamaan<select value={evidence} onChange={event => setEvidence(event.target.value)}><option value="all">Semua klaster</option><option value="disputed">Nama berbeda dari label dominan</option><option value="aligned">Nama sama dengan label dominan</option></select></label>
+          <label>Kesesuaian label<select value={evidence} onChange={event => setEvidence(event.target.value)}><option value="all">Semua klaster</option><option value="disputed">Nama berbeda dari label dominan</option><option value="aligned">Nama sama dengan label dominan</option></select></label>
           <label>Urutkan<select value={sort} onChange={event => setSort(event.target.value as Sort)}><option value="id">ID klaster</option><option value="size">Citra terbanyak</option><option value="purity">Kemurnian terendah</option><option value="margin">Margin nama terkecil</option></select></label>
         </div>
         <div className="exploration-result"><p role="status">{visible.length} dari {researchClusters.length} klaster · {visibleTotal.toLocaleString("id-ID")} dari {total.toLocaleString("id-ID")} citra</p><button type="button" className="btn" onClick={() => { setQuery(""); setLane("all"); setEvidence("all"); setSort("id"); }}>Reset filter</button></div>
@@ -49,10 +49,10 @@ export default function ExplorationTools({ selected, onSelect }: { selected: num
           const count = visible.filter(c => c.lane === code).reduce((sum, c) => sum + c.n, 0);
           return <li key={code}><span className="num">{code}</span><span>{count.toLocaleString("id-ID")} citra</span><span className="num">{percent(count / total * 100)}%</span></li>;
         })}</ul>
-        <p className="dossier-note">Porsi dihitung dari {total.toLocaleString("id-ID")} citra riset, bukan volume limbah lapangan.</p>
+        <p className="dossier-note">Persentase memakai {total.toLocaleString("id-ID")} foto referensi, bukan jumlah barang yang dipilah.</p>
         <div className="distribution-head" aria-hidden="true"><span>Klaster / label dominan</span><span>Citra / porsi</span><span>Murni</span></div>
         {visible.length ? <ul className="cluster-distribution">{visible.map(c => <li key={c.id}><button type="button" aria-pressed={selected === c.id} onClick={() => onSelect(c.id)} aria-label={`C${c.id}, ${c.sub}, label dominan ${c.dom}, ${c.n} citra, ${percent(c.n / total * 100)} persen dataset, kemurnian ${percent(c.pur)} persen, jalur ${c.lane}`}>
-          <span><strong>C{c.id} · {c.sub}</strong><small>{c.dom} · {c.lane}{c.name !== c.dom ? " · Nama terbantah" : ""}</small></span>
+          <span><strong>C{c.id} · {c.sub}</strong><small>{c.dom} · {c.lane}{c.name !== c.dom ? " · Perlu diperiksa" : ""}</small></span>
           <span className="num">{c.n}<small>{percent(c.n / total * 100)}%</small></span><span className="num">{percent(c.pur)}%</span>
           <span className="distribution-track" aria-hidden="true"><span style={{ width: `${c.n / total * 100}%` }} /></span>
         </button></li>)}</ul> : <p className="exploration-empty">Tidak ada klaster yang cocok. Ubah pencarian atau reset filter.</p>}
@@ -60,16 +60,16 @@ export default function ExplorationTools({ selected, onSelect }: { selected: num
       <section className="cluster-comparison" aria-labelledby="comparison-title">
         <h3 id="comparison-title">Bandingkan dua klaster</h3>
         <div className="comparison-pickers"><label>Klaster A<select value={selected} onChange={event => onSelect(Number(event.target.value))}>{researchClusters.map(c => <option key={c.id} value={c.id}>C{c.id} · {c.sub}</option>)}</select></label><label>Klaster B<select value={second.id} onChange={event => setCompareId(Number(event.target.value))}>{researchClusters.filter(c => c.id !== selected).map(c => <option key={c.id} value={c.id}>C{c.id} · {c.sub}</option>)}</select></label></div>
-        <table><caption className="dossier-note">A mengikuti pilihan peta atau indeks. Perbandingan memakai seluruh dataset.</caption><thead><tr><th scope="col">Metrik riset</th><th scope="col">C{first.id}</th><th scope="col">C{second.id}</th></tr></thead><tbody>
+        <table><caption className="dossier-note">A mengikuti pilihan peta atau indeks. Perbandingan memakai seluruh dataset.</caption><thead><tr><th scope="col">Karakteristik klaster</th><th scope="col">C{first.id}</th><th scope="col">C{second.id}</th></tr></thead><tbody>
           <tr><th scope="row">Citra</th><td className="num">{first.n}</td><td className="num">{second.n}</td></tr>
           <tr><th scope="row">Kemurnian label dominan</th><td className="num">{percent(first.pur)}%</td><td className="num">{percent(second.pur)}%</td></tr>
-          <tr><th scope="row">Margin penamaan zero-shot</th><td className="num">{fixed4(first.zs)}</td><td className="num">{fixed4(second.zs)}</td></tr>
+          <tr><th scope="row">Selisih skor label</th><td className="num">{fixed4(first.zs)}</td><td className="num">{fixed4(second.zs)}</td></tr>
           <tr><th scope="row">Label dominan</th><td>{first.dom}</td><td>{second.dom}</td></tr>
-          <tr><th scope="row">Nama zero-shot</th><td>{first.name}</td><td>{second.name}</td></tr>
+          <tr><th scope="row">Label sistem</th><td>{first.name}</td><td>{second.name}</td></tr>
           <tr><th scope="row">Jalur</th><td>{first.lane}</td><td>{second.lane}</td></tr>
         </tbody></table>
-        {(first.name !== first.dom || second.name !== second.dom) && <p className="caveat">Nama C9 dan C11 terbantah oleh label riset. Keduanya tetap perlu peninjauan manual.</p>}
-        <details><summary>Arti metrik & sumber</summary><p className="dossier-note">Kemurnian adalah porsi kelas dominan dalam klaster, bukan akurasi foto baru. Margin penamaan adalah selisih similaritas dua kandidat nama zero-shot, bukan probabilitas atau margin kecocokan foto.</p><p className="dossier-note">Sumber: dataset riset dan metadata jalur E-WISE. Label riset yang ditampilkan hanya kelas dominan; bukan komposisi material.</p></details>
+        {(first.name !== first.dom || second.name !== second.dom) && <p className="caveat">C9 dan C11 memiliki label yang tidak sesuai dengan jenis perangkat dominan. Periksa barang secara manual.</p>}
+        <details><summary>Arti metrik</summary><p className="dossier-note">Kemurnian menunjukkan porsi jenis perangkat dominan dalam klaster, bukan akurasi hasil foto baru. Selisih skor label membandingkan dua label teratas, bukan tingkat keyakinan hasil analisis.</p></details>
       </section>
       <style jsx>{`
         .exploration-tools { min-width:0; }

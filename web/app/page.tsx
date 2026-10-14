@@ -73,7 +73,7 @@ function Explorer() {
   const contested = c.lane === "MR";
   return (
     <section aria-labelledby="cluster-title" className="explorer-workspace">
-      <div className="workspace-heading"><h2 id="cluster-title">Dataset riset</h2><p>{meta.dataset_images_used.toLocaleString("id-ID")} citra · {clusters.length} klaster</p></div>
+      <div className="workspace-heading"><h2 id="cluster-title">Referensi perangkat</h2><p>{meta.dataset_images_used.toLocaleString("id-ID")} citra · {clusters.length} klaster</p></div>
       <div className="explorer">
         <figure className="cluster-atlas">
           <div className="panel-h"><h3>Peta sebaran</h3><span className="spec num">{meta.scatter_points.toLocaleString("id-ID")} sampel · 2D</span></div>
@@ -81,16 +81,16 @@ function Explorer() {
           <div className="atlas-controls" aria-label="Pilih klaster pada peta">
             {clusters.map(x => <button key={x.id} className="cluster-key num" type="button" aria-pressed={selected === x.id} onClick={() => setSelected(x.id)}>C{x.id}</button>)}
           </div>
-          <figcaption>Pilih titik atau ID klaster. Proyeksi ini bukan ruang inferensi.</figcaption>
+          <figcaption>Pilih klaster untuk melihat panduan penanganan.</figcaption>
         </figure>
         <article ref={dossier} className="cluster-dossier" aria-live="polite">
           <div className="dossier-title"><span className="dossier-id num">C{c.id}</span><div><h3>{c.sub}</h3><span className={`spec${c.lane === "P1" ? " is-hazard" : ""}`}>{c.lane} · {LANES[c.lane].desc}</span></div></div>
-          {contested && <p className="caveat"><strong>Nama zero-shot terbantah. </strong>{c.id === 9 ? "C9 campuran; kelas dominan Keyboard hanya 25,8%." : "C11 dinamai Mobile, tetapi kelas dominan Player mencapai 99,6%."} Wajib peninjauan manual.</p>}
+          {contested && <p className="caveat"><strong>Perlu pemeriksaan petugas. </strong>{c.id === 9 ? "C9 campuran; kelas dominan Keyboard hanya 25,8%." : "C11 dinamai Mobile, tetapi kelas dominan Player mencapai 99,6%."} Wajib peninjauan manual.</p>}
           <dl className="facts">
-            <div><dt>Citra riset</dt><dd className="num">{c.n}</dd></div>
+            <div><dt>Foto referensi</dt><dd className="num">{c.n}</dd></div>
             <div><dt>Kelas dominan / kemurnian</dt><dd>{c.dom} / <span className="num">{c.pur.toLocaleString("id-ID", { maximumFractionDigits: 1 })}%</span></dd></div>
           </dl>
-          <details className="dossier-detail"><summary>Detail zero-shot</summary><dl className="facts"><div><dt>Nama zero-shot</dt><dd>{c.name}</dd></div><div><dt>Similaritas zero-shot</dt><dd className="num">{fixed4(c.sim)}</dd></div><div><dt>Margin penamaan zero-shot</dt><dd className="num">{fixed4(c.zs)}</dd></div></dl><p className="dossier-note">Selisih dua kandidat nama klaster, bukan kecocokan foto dengan centroid.</p></details>
+          <details className="dossier-detail"><summary>Detail label</summary><dl className="facts"><div><dt>Label sistem</dt><dd>{c.name}</dd></div><div><dt>Skor kecocokan label</dt><dd className="num">{fixed4(c.sim)}</dd></div><div><dt>Selisih skor label</dt><dd className="num">{fixed4(c.zs)}</dd></div></dl><p className="dossier-note">Selisih skor dua label teratas. Bukan skor kecocokan foto yang diunggah.</p></details>
           {c.hazard && <p className="hazard-note">Perhatian: {c.hazard}.</p>}
           <div className="dossier-action"><h4>Penanganan oleh petugas terlatih</h4><p>{c.action} Ikuti SOP fasilitas setelah pemeriksaan fisik.</p></div>
           <p className="dossier-note"><strong>Potensi material: </strong>{c.material}. Bukan komposisi yang terdeteksi dari foto.</p>
@@ -99,14 +99,13 @@ function Explorer() {
       <div className="explorer-reference">
         <div className="cluster-register"><ExplorationTools selected={selected} onSelect={setSelected} /></div>
         <aside className="research-context" aria-labelledby="research-title">
-          <h3 id="research-title">Mengapa 14, bukan 10?</h3>
-          <p>Konsensus menemukan subtipe di dalam 10 kategori perangkat. Bentuk yang berbeda dapat membutuhkan penanganan berbeda.</p>
+          <h3 id="research-title">Perbedaan perangkat</h3>
           <dl className="subtype-findings">
             <div><dt>Baterai <span className="num">C4 / C10</span></dt><dd>Li-ion ponsel/laptop dibanding sel silinder dan aki. Kimia baterai tetap perlu diperiksa.</dd></div>
             <div><dt>Televisi <span className="num">C8 / C12</span></dt><dd>Layar datar dibanding tabung CRT.</dd></div>
             <div><dt>Mesin cuci <span className="num">C2 / C5</span></dt><dd>Bukaan depan dibanding bukaan atas.</dd></div>
           </dl>
-          <details className="research-method"><summary>Metode & batas evaluasi</summary><p>Fitur CLIP ViT-H/14 direduksi dengan UMAP. K-Means, Ward, dan GMM digabung melalui evidence accumulation, lalu klaster dinamai secara zero-shot.</p><p>Dalam evaluasi historis dengan ambang ilustratif, 89,7% citra dilabeli otomatis dengan akurasi 97,57%. Bukan ukuran kinerja unggahan baru.</p><p className="research-source">Sumber: penelitian E-WISE, BDC 2026, bagian 3.3 dan 3.6 sampai 3.8; Tabel 5 dan 8.</p></details>
+
         </aside>
       </div>
     </section>

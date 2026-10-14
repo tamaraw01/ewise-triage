@@ -160,7 +160,7 @@ export default function ClusterField({ selected, onSelect }: { selected: number;
   return (
     <>
       <span className="field-label num" aria-hidden="true">C{selected}</span>
-      <div ref={host} className="cluster-field" role="img" aria-label={`Sebaran klaster riset, C${selected} disorot. Pilihan tersedia di bawah peta.`} />
+      <div ref={host} className="cluster-field" role="img" aria-label={`Sebaran klaster perangkat, C${selected} disorot. Pilihan tersedia di bawah peta.`} />
     </>
   );
 }
