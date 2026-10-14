@@ -2,11 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+
 import { fixed4, CLUSTERS_META, LANES, type LaneCode } from "@/lib/data";
 import { submitToBackend } from "@/lib/api";
 import { MarginMeter, StatusPill, IconWarn } from "./Primitives";
 import ClusterMap from "./ClusterMap";
 import { automaticLane, candidateLabel, manualReason, parsePrediction, validateFile } from "@/lib/session";
+
+gsap.registerPlugin(useGSAP);
 
 type ZeroShot = { label: string; similarity: number };
 
@@ -36,6 +41,21 @@ export default function TriagePanel({ active = true }: { active?: boolean }) {
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [result, setResult] = useState<Prediction | null>(null);
   const [error, setError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
+  const cameraError = error === "Kamera tidak bisa dibuka. Pilih foto dari perangkat.";
+
+  useGSAP(() => {
+    if (phase !== "error") return;
+    const media = gsap.matchMedia();
+    media.add("(prefers-reduced-motion: no-preference)", () => {
+      gsap.from(".error-art, .error-copy", {
+        y: 10, opacity: 0, duration: 0.42, stagger: 0.06,
+        ease: "power3.out", clearProps: "transform,opacity",
+      });
+    });
+    return () => media.revert();
+  }, { scope: errorRef, dependencies: [phase], revertOnUpdate: true });
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const cameraRequest = useRef(0);
@@ -204,7 +224,7 @@ export default function TriagePanel({ active = true }: { active?: boolean }) {
             </div>
           ) : (
             <div className={`drop${previewUrl ? " has-image" : ""}`}>
-              <input type="file" accept="image/jpeg,image/png,image/webp" aria-label="Pilih citra untuk triase" disabled={busy} onChange={handleFileChange} />
+              <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" aria-label="Pilih citra untuk triase" disabled={busy} onChange={handleFileChange} />
               {previewUrl
                 // eslint-disable-next-line @next/next/no-img-element -- User-selected blob URL stays in the browser; server image optimization cannot fetch it.
                 ? <img src={previewUrl} alt="Citra yang sedang ditriase" />
@@ -235,11 +255,17 @@ export default function TriagePanel({ active = true }: { active?: boolean }) {
           </>}
           {phase === "done" && result && <ResultCard data={result} onReset={reset} />}
           {phase === "error" && (
-            <div className="inline-error" role="alert">
-              <Image src="/mascot-error.webp" alt="" width={309} height={512} unoptimized className="error-mascot" />
-              <b>Triase gagal</b>
-              <span className="dim">{error}</span>
-              <div><button type="button" className="btn" onClick={() => { setError(""); if (file) setPhase("idle"); else reset(); }}>{file ? "Coba lagi" : "Tutup"}</button></div>
+            <div ref={errorRef} className="inline-error" role="alert">
+              <div className="error-art"><Image src="/mascot-error.webp" alt="" width={309} height={512} unoptimized className="error-mascot" /></div>
+              <div className="error-copy">
+                <h3>{cameraError ? "Kamera tidak tersedia" : "Triase gagal"}</h3>
+                <p>{cameraError ? "Pilih foto dari perangkat untuk melanjutkan triase." : error}</p>
+                <div className="error-actions">
+                  {file && <button type="button" className="btn btn-primary" onClick={() => { setError(""); setPhase("idle"); }}>Coba lagi</button>}
+                  <button type="button" className={`btn${file ? "" : " btn-primary"}`} onClick={() => fileInputRef.current?.click()}>Pilih foto</button>
+                  <button type="button" className="btn error-dismiss" onClick={reset}>Tutup</button>
+                </div>
+              </div>
             </div>
           )}
         </div>
