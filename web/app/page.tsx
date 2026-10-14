@@ -106,7 +106,7 @@ function Explorer() {
             <div><dt>Televisi <span className="num">C8 / C12</span></dt><dd>Layar datar dibanding tabung CRT.</dd></div>
             <div><dt>Mesin cuci <span className="num">C2 / C5</span></dt><dd>Bukaan depan dibanding bukaan atas.</dd></div>
           </dl>
-          <details className="research-method"><summary>Metode & batas evaluasi</summary><p>Fitur CLIP ViT-H/14 direduksi dengan UMAP. K-Means, Ward, dan GMM digabung melalui evidence accumulation, lalu klaster dinamai secara zero-shot.</p><p>Dalam evaluasi historis dengan ambang ilustratif, 89,7% citra dilabeli otomatis dengan akurasi 97,57%. Bukan ukuran kinerja unggahan baru.</p><p className="research-source">Sumber: paper E-WISE, BDC 2026, §3.3, §3.6–3.8; Tabel 5 & 8.</p></details>
+          <details className="research-method"><summary>Metode & batas evaluasi</summary><p>Fitur CLIP ViT-H/14 direduksi dengan UMAP. K-Means, Ward, dan GMM digabung melalui evidence accumulation, lalu klaster dinamai secara zero-shot.</p><p>Dalam evaluasi historis dengan ambang ilustratif, 89,7% citra dilabeli otomatis dengan akurasi 97,57%. Bukan ukuran kinerja unggahan baru.</p><p className="research-source">Sumber: penelitian E-WISE, BDC 2026, bagian 3.3 dan 3.6 sampai 3.8; Tabel 5 dan 8.</p></details>
         </aside>
       </div>
     </section>

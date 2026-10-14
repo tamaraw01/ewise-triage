@@ -69,7 +69,7 @@ export default function ExplorationTools({ selected, onSelect }: { selected: num
           <tr><th scope="row">Jalur</th><td>{first.lane}</td><td>{second.lane}</td></tr>
         </tbody></table>
         {(first.name !== first.dom || second.name !== second.dom) && <p className="caveat">Nama C9 dan C11 terbantah oleh label riset. Keduanya tetap perlu peninjauan manual.</p>}
-        <details><summary>Arti metrik & sumber</summary><p className="dossier-note">Kemurnian adalah porsi kelas dominan dalam klaster, bukan akurasi foto baru. Margin penamaan adalah selisih similaritas dua kandidat nama zero-shot, bukan probabilitas atau margin kecocokan foto.</p><p className="dossier-note">Sumber: clusters.json (jumlah, label riset, margin nama) dan metadata jalur E-WISE. Label riset yang ditampilkan hanya kelas dominan; bukan komposisi material.</p></details>
+        <details><summary>Arti metrik & sumber</summary><p className="dossier-note">Kemurnian adalah porsi kelas dominan dalam klaster, bukan akurasi foto baru. Margin penamaan adalah selisih similaritas dua kandidat nama zero-shot, bukan probabilitas atau margin kecocokan foto.</p><p className="dossier-note">Sumber: dataset riset dan metadata jalur E-WISE. Label riset yang ditampilkan hanya kelas dominan; bukan komposisi material.</p></details>
       </section>
       <style jsx>{`
         .exploration-tools { min-width:0; }
