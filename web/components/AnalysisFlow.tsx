@@ -125,10 +125,10 @@ function draw(){queued=false;if(!ctx)return;ctx.clearRect(0,0,W,H);const mobile=
  const named=focus===null?null:clusters.find(c=>c.id===focus);
  return <section ref={root} className="analysis-flow" aria-labelledby={`${id}-title`} data-reduced-motion={reduce}>
   <header className="af-intro"><h2 id={`${id}-title`}>Dari citra, menjadi konsensus.</h2><button type="button" aria-pressed={reduce} onClick={()=>setManualReduce(!reduce)}>Kurangi gerak: {reduce?'aktif':'nonaktif'}</button></header>
-  <nav className="af-index" aria-label="Tahap analisis">{stages.map((s,i)=><a key={s[0]} href={`#${id}-${i}`} aria-current={stage===i?'step':undefined}>{s[0]}</a>)}</nav>
+  <nav className="af-index" aria-label="Tahap analisis">{stages.map((s,i)=><a key={s[0]} href={`#${id}-${i}`} onClick={e=>{e.preventDefault();const target=document.getElementById(`${id}-${i}`);target?.focus({preventScroll:true});target?.scrollIntoView({behavior:reduce?'instant':'smooth',block:'start'});}} aria-current={stage===i?'step':undefined}>{s[0]}</a>)}</nav>
   <div className="af-journey">
    <div className="af-field" aria-hidden="true"><canvas ref={canvasRef}/><div ref={sphereRef} className="af-sphere"/><div className="af-dimension">{['2.660 citra','1024D','‖x̂‖₂ = 1','50D ∥ 2D','K: 9 / 9 / 14',`${methods[partition]} · ${selectedK[partition]}`,'14 klaster','50 refit','10 prompt','2.660 acuan'][stage]}</div><p className="af-field-caption">{stages[stage][3]}</p></div>
-   {stages.map((s,i)=><section key={s[0]} id={`${id}-${i}`} data-stage={i} className={`af-scene ${[4,7,9].includes(i)?'af-evidence':''}`} aria-labelledby={`${id}-heading-${i}`}>
+   {stages.map((s,i)=><section key={s[0]} id={`${id}-${i}`} data-stage={i} tabIndex={-1} className={`af-scene ${[4,7,9].includes(i)?'af-evidence':''}`} aria-labelledby={`${id}-heading-${i}`}>
     <div className="af-copy"><p className="af-eyebrow">{String(i+1).padStart(2,'0')} / {s[0]}</p><h3 id={`${id}-heading-${i}`}>{s[1]}</h3><p>{s[2]}</p>
      {i===1&&<p className="af-formula">citra ⟶ x ∈ ℝ¹⁰²⁴</p>}
      {i===2&&<p className="af-formula">x̂ = x / ‖x‖₂</p>}
