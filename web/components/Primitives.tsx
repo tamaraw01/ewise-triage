@@ -2,7 +2,7 @@ import { fixed4 } from "@/lib/data";
 
 export function MarginMeter({ margin, threshold, colorClass }: { margin: number; threshold: number; colorClass: string }) {
   const scaleMax = 0.20;
-  const fillW = Math.min(margin / scaleMax, 1) * 100;
+  const fillW = Math.max(0, Math.min(margin / scaleMax, 1)) * 100;
   const tickL = Math.min(threshold / scaleMax, 1) * 100;
 
   return (

@@ -208,7 +208,7 @@ export default function TriagePanel({ active = true }: { active?: boolean }) {
   const busy = phase === "loading";
 
   return (
-    <div className="console">
+    <div className={`console${phase === "done" && result ? " inspection-desk" : ""}`}>
       <p className="sr-only" role="status" aria-live="polite">{busy ? "Citra dikirim, menunggu backend." : phase === "done" ? "Hasil triase tersedia." : phase === "error" ? `Gagal: ${error}` : ""}</p>
 
       <section className="panel capture-panel" aria-labelledby="input-title" onDrop={onDrop} onDragOver={onDragOver}>
@@ -244,7 +244,7 @@ export default function TriagePanel({ active = true }: { active?: boolean }) {
         </div>
       </section>
 
-      <section className="panel verdict-panel" aria-labelledby="verdict-title" aria-busy={busy}>
+      {phase !== "done" && <section className="panel verdict-panel" aria-labelledby="verdict-title" aria-busy={busy}>
         <div className="panel-h"><h2 id="verdict-title">Hasil triase</h2></div>
         <div className="panel-b">
           {phase === "idle" && !file && <LaneLegend />}
@@ -253,7 +253,6 @@ export default function TriagePanel({ active = true }: { active?: boolean }) {
             <p className="scan-note">Mencocokkan foto dengan klaster…</p>
             <button type="button" className="btn" onClick={reset}>Batalkan triase</button>
           </>}
-          {phase === "done" && result && <ResultCard data={result} onReset={reset} />}
           {phase === "error" && (
             <div ref={errorRef} className="inline-error" role="alert">
               <div className="error-art"><Image src="/mascot-error.webp" alt="" width={309} height={512} unoptimized className="error-mascot" /></div>
@@ -269,7 +268,8 @@ export default function TriagePanel({ active = true }: { active?: boolean }) {
             </div>
           )}
         </div>
-      </section>
+      </section>}
+      {phase === "done" && result && <ResultCard data={result} onReset={reset} />}
     </div>
   );
 }
@@ -293,19 +293,28 @@ function LaneLegend() {
 }
 
 function ResultCard({ data, onReset }: { data: Prediction; onReset: () => void }) {
+  const evidenceRef = useRef<HTMLDivElement>(null);
+  useGSAP(() => {
+    const media = gsap.matchMedia();
+    media.add("(prefers-reduced-motion: no-preference)", () => {
+      gsap.from(".evidence-column", {
+        y: 12, opacity: 0, duration: 0.45, stagger: 0.07,
+        ease: "power2.out", clearProps: "transform,opacity",
+      });
+    });
+    return () => media.revert();
+  }, { scope: evidenceRef });
+
   const cMeta = CLUSTERS_META[data.cluster.id];
-  // Id di luar tabel turun ke peninjauan manual, bukan crash
   const auto = Boolean(cMeta) && automaticLane(data) !== "MR";
   const laneKey: LaneCode = auto ? cMeta.lane : "MR";
   const lane = LANES[laneKey];
   const hazard = laneKey === "P1";
-
   const reason = !auto
     ? manualReason(data) || (data.runner_up?.label
       ? `${data.cluster.handling}. Kandidat kedua C${data.runner_up.id} (${data.runner_up.label}) terlalu rapat.`
       : data.cluster.handling)
     : "";
-
   const fill = auto ? "var(--green)" : "var(--bone-dim)";
   const candidates = (Array.isArray(data.ranking) ? data.ranking : [])
     .filter(candidate => candidate && Number.isInteger(candidate.cluster) && candidate.cluster >= 0 &&
@@ -313,75 +322,71 @@ function ResultCard({ data, onReset }: { data: Prediction; onReset: () => void }
     .sort((a, b) => b.similarity - a.similarity)
     .slice(0, 5);
   const zsEntries = (data.zero_shot ?? []).slice(0, 3);
-  const maxScore = zsEntries[0]?.similarity || 1;
 
   return (
     <>
-      <div className={`ticket-lane${hazard ? " is-hazard" : ""}${auto ? "" : " is-manual"}`}>
-        <span className="num lane-code">{lane.code}</span>
-        <span><b>{lane.name}</b><small>{lane.desc}</small></span>
-      </div>
+      <section className="inspection-verdict" aria-labelledby="result-device">
+        <div className={`ticket-lane${hazard ? " is-hazard" : ""}${auto ? "" : " is-manual"}`}>
+          <span className="num lane-code">{lane.code}</span>
+          <span><b>{lane.name}</b><small>{lane.desc}</small></span>
+        </div>
+        <div className="inspection-decision">
+          <StatusPill auto={auto} text={auto ? "Jalur otomatis, tetap periksa fisik" : "Peninjauan manual"} />
+          <div className="ticket-id">
+            <span className="num chip">C{data.cluster.id}</span>
+            <h3 id="result-device">{auto ? cMeta.name : "Periksa barang secara manual"}</h3>
+          </div>
+          <p className="ticket-sub">{auto ? cMeta.sub : `Kandidat terdekat: C${data.cluster.id} (${candidateLabel(data) ?? "tidak tersedia"})`}</p>
+          <div className="inspection-handling">
+            <h4 className="label">Penanganan oleh petugas terlatih</h4>
+            {auto && cMeta.hazard && <div className="hazard-note"><IconWarn /><span>{cMeta.hazard}</span></div>}
+            <p>{auto ? `${cMeta.action} Ikuti SOP fasilitas setelah pemeriksaan fisik.` : reason}</p>
+          </div>
+          <button type="button" className="btn btn-primary btn-block" onClick={onReset}>Triase barang berikutnya</button>
+        </div>
+      </section>
 
-      <StatusPill auto={auto} text={auto ? "Jalur otomatis, tetap periksa fisik" : "Peninjauan manual"} />
-
-      <div className="ticket-id">
-        <span className="num chip">C{data.cluster.id}</span>
-        <h3>{auto ? cMeta.name : "Belum dapat dipastikan"}</h3>
-      </div>
-      <p className="ticket-sub">{auto ? cMeta.sub : `Kandidat terdekat: C${data.cluster.id} (${candidateLabel(data) ?? "tidak tersedia"})`}</p>
-
-      <div className="block">
-        <span className="label">Margin kecocokan klaster</span>
-        <div className="num reading">{fixed4(data.margin)}<small style={{ color: fill }}>{data.margin >= data.threshold ? "di atas ambang" : "di bawah ambang"}</small></div>
-        <MarginMeter margin={data.margin} threshold={data.threshold} colorClass={fill} /><p className="dim">Selisih skor kecocokan dua klaster teratas. Bukan probabilitas hasil benar.</p>
-      </div>
-
-      <div className="block">
-        <span className="label">Kandidat klaster</span>
-        <p className="dim">Skor kecocokan foto dengan tiap klaster, bukan tingkat keyakinan. Skala: −1 sampai 1.</p>
-        {candidates.length > 0 ? (
-          <ol aria-label="Kandidat menurut similaritas tertinggi" style={{ listStyle: "none", padding: 0, margin: 0 }}>
-            {candidates.map((candidate, i) => {
-              const score = Math.max(-1, Math.min(1, candidate.similarity));
-              return (
-                <li key={`${candidate.cluster}-${i}`}>
-                  <div className="zs-row" style={{ gap: 12 }}>
-                    <span style={{ minWidth: 0, overflowWrap: "anywhere" }}><span className="num">{i + 1}. C{candidate.cluster}</span> · {candidate.label ?? "Nama tidak tersedia"}</span>
-                    <span className="num" style={{ flexShrink: 0 }}>{fixed4(candidate.similarity)}</span>
-                  </div>
-                  <div className="zs-bar" aria-hidden="true" style={{ position: "relative" }}>
-                    <i style={{ position: "absolute", left: `${score < 0 ? 50 + score * 50 : 50}%`, width: `${Math.abs(score) * 50}%`, background: "var(--bone-dim)" }} />
-                    <span style={{ position: "absolute", left: "50%", top: -2, bottom: -2, width: 1, background: "var(--bone)" }} />
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        ) : <p className="dim">Peringkat kandidat tidak tersedia.</p>}
-      </div>
-
-      <div className="block">
-        <span className="label">Penanganan oleh petugas terlatih</span>
-        {auto && cMeta.hazard && <div className="hazard-note"><IconWarn /><span>{cMeta.hazard}</span></div>}
-        <p>{auto ? `${cMeta.action} Ikuti SOP fasilitas setelah pemeriksaan fisik.` : reason}</p>
-        {auto && <p className="dim"><b className="text-bone">Potensi material:</b> {cMeta.material}. Bukan komposisi yang terdeteksi dari foto.</p>}
-      </div>
-
-      {zsEntries.length > 0 && (
-        <details className="zs block">
-          <summary>Detail label</summary>
-          {zsEntries.map((zs, i) => (
-            <div key={zs.label}>
-              <div className="zs-row num"><span>{zs.label}</span><span className="dim">{fixed4(zs.similarity)}</span></div>
-              <div className="zs-bar"><i style={{ width: `${(zs.similarity / maxScore) * 100}%`, opacity: i === 0 ? 1 : 0.4 }} /></div>
-            </div>
-          ))}
-        </details>
-      )}
-
-      {data.disclaimer && <p className="disclaimer">{data.disclaimer}</p>}
-
-      <button type="button" className="btn btn-block" onClick={onReset}>Triase barang berikutnya</button>
+      <section ref={evidenceRef} className="inspection-evidence" aria-labelledby="evidence-title">
+        <div className="evidence-heading"><h3 id="evidence-title">Bukti pencocokan</h3><span className="spec">Skor kemiripan, bukan probabilitas</span></div>
+        <div className="evidence-columns">
+          <div className="evidence-column evidence-margin">
+            <h4 className="label">Margin kecocokan klaster</h4>
+            <div className="num reading">{fixed4(data.margin)}</div>
+            <p className="margin-state" style={{ color: fill }}>{data.margin >= data.threshold ? "Di atas ambang" : "Di bawah ambang"} <span className="num">{fixed4(data.threshold)}</span></p>
+            <MarginMeter margin={data.margin} threshold={data.threshold} colorClass={fill} />
+            <p className="dim">Selisih dua skor teratas. {auto ? "Tetap periksa kondisi barang." : "Jalur manual tetap berlaku."}</p>
+          </div>
+          <div className="evidence-column evidence-ranking">
+            <h4 className="label">Kandidat klaster</h4>
+            <div className="signed-scale num" aria-hidden="true"><span>−1</span><span>0</span><span>1</span></div>
+            {candidates.length > 0 ? (
+              <ol className="candidate-list" aria-label="Kandidat menurut similaritas tertinggi, skala minus satu sampai satu">
+                {candidates.map((candidate, i) => {
+                  const score = Math.max(-1, Math.min(1, candidate.similarity));
+                  return (
+                    <li key={`${candidate.cluster}-${i}`}>
+                      <div className="candidate-row"><span><span className="num">C{candidate.cluster}</span> {candidate.label ?? "Nama tidak tersedia"}</span><span className="num">{fixed4(candidate.similarity)}</span></div>
+                      <div className="signed-bar" aria-hidden="true"><i style={{ left: `${score < 0 ? 50 + score * 50 : 50}%`, width: `${Math.abs(score) * 50}%` }} /></div>
+                    </li>
+                  );
+                })}
+              </ol>
+            ) : <p className="dim">Peringkat kandidat tidak tersedia.</p>}
+          </div>
+          <div className="evidence-column evidence-detail">
+            <h4 className="label">Catatan barang</h4>
+            {auto ? <p><b>Potensi material</b><br />{cMeta.material}. Bukan komposisi yang terdeteksi dari foto.</p> : <p className="dim">Identitas dan jalur penanganan perlu pemeriksaan petugas.</p>}
+            {zsEntries.length > 0 && (
+              <details className="zs block">
+                <summary>Detail label</summary>
+                <p className="dim">Skor kemiripan label: −1 sampai 1.</p>
+                {zsEntries.map(zs => <div key={zs.label} className="zs-row"><span>{zs.label}</span><span className="num">{fixed4(zs.similarity)}</span></div>)}
+              </details>
+            )}
+          </div>
+        </div>
+        {data.disclaimer && <p className="disclaimer">{data.disclaimer}</p>}
+      </section>
     </>
   );
 }
