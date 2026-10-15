@@ -6,6 +6,7 @@ import { useGSAP } from "@gsap/react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import TriagePanel from "@/components/TriagePanel";
+import ResearchDashboard from "@/components/ResearchDashboard";
 import ExplorationTools, { researchClusters } from "@/components/ExplorationTools";
 const ClusterField = dynamic(() => import("@/components/ClusterField"), {
   ssr: false,
@@ -16,7 +17,7 @@ import { LANES, fixed4 } from "@/lib/data";
 
 gsap.registerPlugin(useGSAP);
 
-const sections = ["Konsol", "Cluster Explorer"] as const;
+const sections = ["Konsol", "Cluster Explorer", "Statistik"] as const;
 type Section = (typeof sections)[number];
 const clusters = researchClusters;
 gsap.config({ nullTargetWarn: false }); // panels share one timeline; absent targets are expected
@@ -43,7 +44,7 @@ export default function Page() {
       </header>
       <nav className="dashboard-nav" role="tablist" aria-label="Ruang kerja">
         {sections.map((name, index) => <button key={name} id={`tab-${index}`} type="button" role="tab" aria-selected={section === name} aria-controls={`panel-${index}`} tabIndex={section === name ? 0 : -1} onClick={() => { setSection(name); if (index === 1) setExplorerOpened(true); }} onKeyDown={event => {
-          const next = event.key === "Home" ? 0 : event.key === "End" ? 1 : event.key === "ArrowRight" || event.key === "ArrowLeft" ? 1 - index : -1;
+          const next = event.key === "Home" ? 0 : event.key === "End" ? sections.length - 1 : event.key === "ArrowRight" ? (index + 1) % sections.length : event.key === "ArrowLeft" ? (index + sections.length - 1) % sections.length : -1;
           if (next < 0) return;
           event.preventDefault();
           document.getElementById(`tab-${next}`)?.click();
@@ -53,6 +54,7 @@ export default function Page() {
       <div ref={stage} className="dashboard-stage">
         <div id="panel-0" role="tabpanel" aria-labelledby="tab-0" hidden={section !== "Konsol"}><TriagePanel active={section === "Konsol"} /></div>
         <div id="panel-1" role="tabpanel" aria-labelledby="tab-1" hidden={section !== "Cluster Explorer"}>{explorerOpened && <Explorer />}</div>
+        <div id="panel-2" role="tabpanel" aria-labelledby="tab-2" hidden={section !== "Statistik"}>{section === "Statistik" && <ResearchDashboard />}</div>
       </div>
       <footer className="dashboard-footer">© {new Date().getFullYear()} E-WISE</footer>
     </main>
