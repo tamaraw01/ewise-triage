@@ -53,6 +53,15 @@ test('metric sorting and CSV retain every cluster without changing input', () =>
   assert.deepEqual(clusters.map(c => c.id), original);
 });
 
+test('bootstrap card and plot both show mean ARI', () => {
+  assert.match(source, /Rata-rata ARI Ensemble/);
+  assert.match(source, /number\(s\.mean, 4\)/);
+  assert.doesNotMatch(source, /s\.median/);
+  const mean = analytics.bootstrap.rows.reduce((sum, row) => sum + row.ARI_ensemble, 0) / analytics.bootstrap.rows.length;
+  assert.ok(Math.abs(mean - analytics.bootstrap.summary.ensemble.mean) < 1e-12);
+  assert.equal(mean.toFixed(4), '0.9417');
+});
+
 test('complete analytics denominators reconcile independently of truncated truth_mix', () => {
   assert.equal(analytics.classDistribution.reduce((s, c) => s + c.count, 0), 2660);
   assert.equal(analytics.evaluation.confusion.values.flat().reduce((s, n) => s + n, 0), 2660);

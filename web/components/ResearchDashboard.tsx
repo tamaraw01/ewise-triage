@@ -78,7 +78,7 @@ export default function ResearchDashboard() {
     ["Citra dipakai", number(meta.dataset_images_used), `dari ${number(meta.dataset_images_total)}`],
     ["Akurasi penamaan", percent(ev.accuracy), `Macro-F1 ${number(ev.macroF1, 4)}`],
     ["Kemurnian klaster", percent(stats.dominantCount / stats.total), `${number(stats.dominantCount)} dari ${number(stats.total)}`],
-    ["Stabilitas ARI", number(boot.summary.ensemble.mean, 4), `SD ${number(boot.summary.ensemble.stdSample, 4)}, ${boot.replicates} bootstrap`],
+    ["Rata-rata ARI Ensemble", number(boot.summary.ensemble.mean, 4), `SD ${number(boot.summary.ensemble.stdSample, 4)}, ${boot.replicates} bootstrap`],
   ];
   return <section ref={root} className="research-dashboard" aria-labelledby="statistics-title">
     <div className="workspace-heading"><h2 id="statistics-title">Statistik</h2><p>Electronic BDC 2026, {clusters.length} klaster</p></div>
@@ -102,7 +102,7 @@ export default function ResearchDashboard() {
         <div className="research-controls"><label htmlFor="research-metric" className="sr-only">Ukuran grafik</label><select id="research-metric" value={metric} onChange={e => setMetric(e.target.value as Metric)}><option value="n_images">Jumlah citra</option><option value="purity">Kemurnian</option><option value="margin">Margin penamaan</option></select><button type="button" className="btn" onClick={() => setAscending(!ascending)}>{ascending ? "Terkecil dahulu" : "Terbesar dahulu"}</button><button type="button" className="btn" onClick={download}>Unduh CSV</button></div></div>
       <div className="research-grid research-grid-wide">
         <ol className="research-bars research-cluster-bars" aria-label="Nilai per klaster">{rows.map(c => <li key={c.id}><span><span className="num">C{c.id}</span> {c.label}</span><Bar value={metricValue(c, metric)} max={ceiling} tone={flagged(c.id) ? "var(--amber)" : "var(--green)"} /><span className="num">{show(c)}{flagged(c.id) && <span className="research-review">{flagged(c.id)}</span>}</span></li>)}</ol>
-        <dl className="research-facts">{[["Rata-rata", number(stats.mean, 2)], ["Median", number(stats.median, 1)], ["Terkecil", number(stats.min)], ["Terbesar", number(stats.max)], ["Simpangan baku", number(stats.sd, 2)]].map(([k, v]) => <div key={k}><dt>{k}</dt><dd className="num">{v}</dd></div>)}<p className="research-note">Citra per klaster.</p></dl>
+        <dl className="research-facts">{[["Rata-rata", number(stats.mean, 2)], ["Median", number(stats.mean, 1)], ["Terkecil", number(stats.min)], ["Terbesar", number(stats.max)], ["Simpangan baku", number(stats.sd, 2)]].map(([k, v]) => <div key={k}><dt>{k}</dt><dd className="num">{v}</dd></div>)}<p className="research-note">Citra per klaster.</p></dl>
       </div>
       <p className="research-note">Margin penamaan adalah selisih skor kemiripan dua label teratas, bukan probabilitas.</p>
       <div className="research-flags">{[9, 11].map(id => { const c = clusters.find(k => k.id === id)!; const [name, n] = dominant(c); return <p key={id}><strong>C{id} {flagged(id).toLowerCase()}.</strong> Dinamai {c.label}, isinya {n} {name} dari {c.n_images} citra.</p>; })}</div>
@@ -122,9 +122,9 @@ export default function ResearchDashboard() {
         <p className="research-legend"><i style={{ background: "var(--green)" }} />Diterima {number(tri.acceptedCount)} <i style={{ background: "var(--amber)" }} />Ditinjau {tri.reviewCount}, C9 dan C11</p>
         <p className="research-big num">{percent(tri.acceptedAccuracy)}</p><p className="research-note">Akurasi citra diterima, margin di bawah {number(tri.threshold, 2)} ditinjau. Konsol memakai ambang terpisah, {number(0.0297, 4)}.</p>
       </section>
-      <section aria-labelledby="boot-title"><h3 id="boot-title">Stabilitas bootstrap</h3>
-        <div className="research-strips">{methods.map(m => { const s = boot.summary[m]; return <figure key={m}><figcaption><strong>{methodName[m]}</strong> <span className="num">{number(s.median, 4)}</span></figcaption><svg viewBox="0 0 320 30" role="img" aria-label={`${methodName[m]}: median ARI ${number(s.median, 4)}`}><line x1="10" x2="310" y1="15" y2="15" stroke="var(--iron-hi)" strokeWidth="8" /><line x1={10 + x(s.p05, lo, 1)} x2={10 + x(s.p95, lo, 1)} y1="15" y2="15" stroke="var(--edge)" strokeWidth="8" />{boot.rows.map(r => <circle key={r.bootstrap} cx={10 + x(r[`ARI_${m}`], lo, 1)} cy="15" r="2.2" fill="var(--bone)" opacity=".55" />)}<line x1={10 + x(s.median, lo, 1)} x2={10 + x(s.median, lo, 1)} y1="3" y2="27" stroke="var(--green)" strokeWidth="2" /></svg></figure>; })}</div>
-        <p className="research-note">ARI {number(lo, 2)} sampai 1, satu titik satu replikasi.</p>
+      <section aria-labelledby="boot-title"><h3 id="boot-title">Stabilitas bootstrap</h3><p className="research-note">Rata-rata ARI dari 50 replikasi. Garis hijau menandai rata-rata.</p>
+        <div className="research-strips">{methods.map(m => { const s = boot.summary[m]; return <figure key={m}><figcaption><strong>{methodName[m]}</strong> <span className="num">{number(s.mean, 4)}</span></figcaption><svg viewBox="0 0 320 46" role="img" aria-label={`${methodName[m]}: rata-rata ARI ${number(s.mean, 4)}`}><line x1="10" x2="310" y1="15" y2="15" stroke="var(--iron-hi)" strokeWidth="8" /><line x1={10 + x(s.p05, lo, 1)} x2={10 + x(s.p95, lo, 1)} y1="15" y2="15" stroke="var(--edge)" strokeWidth="8" />{boot.rows.map(r => <circle key={r.bootstrap} cx={10 + x(r[`ARI_${m}`], lo, 1)} cy="15" r="2.2" fill="var(--bone)" opacity=".55" />)}<line x1={10 + x(s.mean, lo, 1)} x2={10 + x(s.mean, lo, 1)} y1="3" y2="27" stroke="var(--green)" strokeWidth="2" /><text x="10" y="43" fill="var(--bone-dim)" fontSize="10">{number(lo, 2)}</text><text x="310" y="43" textAnchor="end" fill="var(--bone-dim)" fontSize="10">1,00</text></svg></figure>; })}</div>
+        <p className="research-note">Titik menunjukkan hasil tiap replikasi.</p>
       </section>
     </div>
 
