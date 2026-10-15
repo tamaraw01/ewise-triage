@@ -192,10 +192,10 @@ figcaption { font-size:14px; color:var(--bone-dim); line-height:1.6; padding:16p
 @media(max-width:560px) {
   .dashboard { padding:16px 16px 0; }
   .dashboard-header { padding:4px 0 22px; }
-  .brand { gap:14px; }
-  .brand-mark { width:42px; height:42px; margin-right:-6px; }
-  .brand h1 { font-size:26px; }
-  .brand p { padding-left:14px; font-size:12px; max-width:150px; }
+  .brand { display:grid; grid-template-columns:42px minmax(0,1fr); gap:6px 14px; }
+  .brand-mark { width:42px; height:42px; margin-right:0; }
+  .brand h1 { font-size:26px; white-space:nowrap; }
+  .brand p { grid-column:1 / -1; border-left:0; padding-left:0; font-size:12px; max-width:34ch; }
   .dashboard-nav { margin-bottom:24px; }
   .dashboard-nav button { flex:1; padding:0 8px; }
   .workspace-heading { align-items:start; flex-direction:column; gap:10px; }

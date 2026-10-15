@@ -39,7 +39,7 @@ export default function Page() {
   return (
     <main id="konten" className="dashboard">
       <header className="dashboard-header">
-        <div className="brand"><Image src="/ewise-mark.png" alt="" width={56} height={56} priority className="brand-mark" /><h1 aria-label="E-WISE">E<span className="brand-dash" aria-hidden="true" />WISE</h1><p>Triase limbah elektronik</p></div>
+        <div className="brand"><Image src="/ewise-mark.png" alt="" width={56} height={56} priority className="brand-mark" /><h1 aria-label="E-WISE">E<span className="brand-dash" aria-hidden="true" />WISE</h1><p>Electronic Waste Intelligent Sorting &amp; Exploration</p></div>
       </header>
       <nav className="dashboard-nav" role="tablist" aria-label="Ruang kerja">
         {sections.map((name, index) => <button key={name} id={`tab-${index}`} type="button" role="tab" aria-selected={section === name} aria-controls={`panel-${index}`} tabIndex={section === name ? 0 : -1} onClick={() => { setSection(name); if (index === 1) setExplorerOpened(true); }} onKeyDown={event => {
