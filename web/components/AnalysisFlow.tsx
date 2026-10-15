@@ -1,29 +1,18 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import * as THREE from "three";
 import analytics from "../data/analytics.json";
-import meta from "../data/meta.json";
 import clusters from "../data/clusters.json";
 import flow from "../data/analysis-flow.json";
 import "./analysis-flow.css";
 
-gsap.registerPlugin(useGSAP);
+gsap.registerPlugin(useGSAP, ScrollTrigger);
 const n = (value: number, digits = 0) => value.toLocaleString("id-ID", { maximumFractionDigits: digits });
 const pct = (value: number) => `${n(value * 100, 2)}%`;
-const stages = [
-  ["Data", "Seleksi citra", "Awalan nama berkas menentukan citra yang dipakai. Bukan penyaringan mutu citra."],
-  ["CLIP", "Citra menjadi fitur", "OpenCLIP ViT-H-14 menghasilkan representasi visual 1024 dimensi."],
-  ["L2", "Satu norma, arah tetap", "Normalisasi L2 menyetarakan panjang vektor sebelum reduksi dimensi."],
-  ["UMAP", "Dua jalur paralel", "UMAP 50D untuk clustering; UMAP 2D langsung dari embedding L2 untuk visualisasi."],
-  ["Pilihan K", "Jumlah klaster dipilih", "Silhouette tertinggi untuk K-Means dan Ward; BIC terendah untuk GMM."],
-  ["Clustering", "Tiga partisi, citra yang sama", "Ganti metode untuk membandingkan label. Posisi citra tidak berubah."],
-  ["Konsensus", "Kesepakatan menjadi partisi", "Co-association menggabungkan tiga partisi. Average linkage membentuk konsensus."],
-  ["Bootstrap", "Uji kestabilan partisi", "Sampling dengan pengembalian, lalu indeks unik dipakai untuk refit clustering dan konsensus."],
-  ["Penamaan", "Nama mengikuti kemiripan", "Nama sistem dipilih dari kemiripan fitur citra dengan prompt teks. Bukan label terverifikasi."],
-  ["Evaluasi", "Bandingkan dengan label acuan", "Evaluasi deskriptif pada citra yang sama. Acuan berasal dari nama berkas, bukan audit independen."],
-] as const;
 const methods = ["K-Means", "Ward", "GMM", "Konsensus"];
 const chosen = analytics.selection.selected;
 const selectedK = [chosen.kmeans, chosen.ward, chosen.gmm, chosen.consensus];
@@ -32,21 +21,18 @@ const xs = points.map(p => p[0]), ys = points.map(p => p[1]);
 const bounds = { xmin: Math.min(...xs), xmax: Math.max(...xs), ymin: Math.min(...ys), ymax: Math.max(...ys) };
 // One isotropic scale, reused for every partition; only point labels change.
 const scale = Math.min(440 / (bounds.xmax - bounds.xmin), 300 / (bounds.ymax - bounds.ymin));
-const px = (v: number) => 250 + (v - (bounds.xmin + bounds.xmax) / 2) * scale;
-const py = (v: number) => 175 - (v - (bounds.ymin + bounds.ymax) / 2) * scale;
-const label = (x: number, y: number, text: string, accent = false) => <text x={x} y={y} textAnchor="middle" className={accent ? "af-accent" : undefined}>{text}</text>;
-function Box({ x, y, width = 190, title, sub }: { x: number; y: number; width?: number; title: string; sub: string }) {
-  return <g className="af-node"><rect x={x} y={y} width={width} height={90} rx={2} />{label(x + width / 2, y + 36, title)}<text x={x + width / 2} y={y + 63} textAnchor="middle" className="af-small">{sub}</text></g>;
-}
-function Diagram({ stage }: { stage: number }) {
-  return <svg className="af-diagram" viewBox="0 0 900 360" role="img" aria-label={`${stages[stage][1]}. ${({ 0: `${n(meta.dataset_images_total)} citra awal, ${n(meta.dataset_images_dropped)} dikeluarkan lewat seleksi awalan, ${n(points.length)} dipakai.`, 1: `Citra masuk OpenCLIP ViT-H-14, menghasilkan embedding ${meta.embed_dim} dimensi.`, 2: 'Embedding dibagi norma L2, menghasilkan vektor dengan norma satu.', 3: 'Embedding L2 masuk dua UMAP independen: 50 dimensi untuk pemilihan K dan clustering, 2 dimensi hanya untuk visualisasi.', 6: `Partisi K-Means, Ward, dan GMM membentuk co-association. Jarak satu dikurangi kesepakatan, average linkage menghasilkan ${chosen.consensus} klaster.` } as Record<number, string>)[stage] ?? ''} Diagram skematis, bukan lintasan pengukuran.`}>
-    {stage === 0 && <><path d="M260 180H350M550 180H640" /><Box x={55} y={135} title={`${n(meta.dataset_images_total)} citra`} sub="Data awal" /><Box x={355} y={135} title="Seleksi awalan" sub={`${n(meta.dataset_images_dropped)} dikeluarkan`} /><Box x={655} y={135} title={`${n(points.length)} citra`} sub="Dipakai" /></>}
-    {stage === 1 && <><path d="M245 180H350M550 180H655" /><Box x={55} y={135} title="Citra" sub="Masukan visual" /><Box x={355} y={135} title="OpenCLIP" sub="ViT-H-14" /><Box x={655} y={135} title={`${meta.embed_dim}D`} sub="Embedding citra" />{label(450, 305, "Skema ekstraksi · bukan lintasan fitur terukur")}</>}
-    {stage === 2 && <><circle cx={640} cy={180} r={100} className="af-wire" /><path d="M640 180L711 109M245 180H350M550 180H585" /><Box x={55} y={135} title="Embedding" sub={`${meta.embed_dim} dimensi`} /><Box x={355} y={135} title="x / ‖x‖₂" sub="Normalisasi L2" />{label(640, 210, "‖x‖₂ = 1", true)}{label(450, 325, "Lingkaran skematis · bukan proyeksi data")}</>}
-    {stage === 3 && <><path d="M300 180H430V95H560M430 180V265H560" /><Box x={70} y={135} width={230} title="Embedding L2" sub={`${meta.embed_dim}D`} /><Box x={560} y={50} width={260} title="UMAP 50D" sub="Pemilihan K dan clustering" /><Box x={560} y={220} width={260} title="UMAP 2D" sub="Visualisasi saja" />{label(225, 305, "Cabang independen", true)}</>}
-    {stage === 6 && <><path d="M240 180H330M570 180H650" /><Box x={40} y={135} title="Tiga partisi" sub="K-Means · Ward · GMM" /><Box x={330} y={135} width={240} title="Co-association" sub="D = 1 − kesepakatan" /><Box x={650} y={135} width={220} title={`${chosen.consensus} klaster`} sub="Average linkage" />{label(450, 300, "Konsensus dipilih dengan silhouette pada D")}</>}
-  </svg>;
-}
+const stages = [
+ ["Data", "2.660 citra. Satu populasi.", "Seleksi awalan nama berkas: 3.961 citra awal, 1.301 dikeluarkan. Sepuluh kelas acuan berasal dari nama berkas, belum diaudit independen.", "Ilustrasi citra skematis, bukan foto dataset"],
+ ["CLIP", "Citra menjadi arah.", "OpenCLIP ViT-H-14 menghasilkan embedding 1024 dimensi.", "Helai fitur skematis, bukan embedding terukur"],
+ ["L2", "Panjang setara. Arah tetap.", "Vektor dibagi norma L2. Ruang fitur tetap 1024 dimensi.", "Bola satuan skematis, bukan proyeksi data"],
+ ["UMAP", "Satu sumber. Dua ruang.", "UMAP 2D langsung dari embedding L2 untuk visualisasi. UMAP 50D berjalan independen untuk pemilihan K dan clustering.", "Dua cabang independen dari L2 1024D"],
+ ["Pilihan K", "Jumlah dipilih sebelum partisi.", "Silhouette maksimum untuk K-Means dan Ward. BIC minimum untuk GMM. Semua dihitung di UMAP 50D.", "2.660 koordinat UMAP 2D asli, skala X/Y sama"],
+ ["Clustering", "Tiga pembacaan. Titik yang sama.", "Ganti partisi. Warna mengikuti label asli; posisi citra tetap.", "Label partisi asli, koordinat UMAP 2D tetap"],
+ ["Konsensus", "Kesepakatan membentuk 14.", "Pilih K lewat silhouette pada D = 1 − co-association, lalu average linkage membentuk konsensus.", "Konsensus asli, bukan clustering pada peta 2D"],
+ ["Bootstrap", "Uji kembali, 50 kali.", "Sampling dengan pengembalian, lalu indeks unik dipakai untuk refit clustering dan konsensus.", "Bootstrap bersyarat pada embedding dan K tetap"],
+ ["Penamaan", "Klaster mendapat nama.", "Rata-rata cosine similarity citra–teks tertinggi dari 10 prompt menentukan nama. Kemiripan bukan probabilitas.", "Nama sistem, bukan label terverifikasi"],
+ ["Evaluasi", "Hasil terukur. Batas tetap ada.", "Evaluasi deskriptif pada 2.660 citra yang sama, bukan validasi independen atau kinerja lapangan.", "Acuan dari awalan nama berkas"],
+] as const;
 function KCurves() {
   const fields = ["silhouette_kmeans", "silhouette_ward", "bic_gmm"] as const;
   return <div className="af-curves">{fields.map((field, i) => {
@@ -58,58 +44,108 @@ function KCurves() {
     return <figure key={field}><figcaption>{methods[i]} <strong>K {selectedK[i]}</strong></figcaption><svg viewBox="0 0 300 205" role="img" aria-label={`${methods[i]}, K ${selectedK[i]}, ${i === 2 ? "BIC" : "silhouette"} ${n(pick[field], 4)}`}><path d="M35 25V170H275" /><polyline points={rows.map(r => `${x(r.K)},${y(r[field])}`).join(" ")} className="af-curve" /><line x1={x(pick.K)} x2={x(pick.K)} y1={25} y2={170} className="af-chosen" /><circle cx={x(pick.K)} cy={y(pick[field])} r={4} className="af-accent-fill" /><text x={35} y={193} className="af-small">K {rows[0].K}</text><text x={270} y={193} textAnchor="end" className="af-small">K {rows.at(-1)!.K}</text></svg><p>{i === 2 ? "BIC minimum" : "Silhouette maksimum"}<br /><strong>{n(pick[field], 4)}</strong></p></figure>;
   })}</div>;
 }
-function Scatter({ partition, focus }: { partition: number; focus: number | null }) {
-  return <svg className="af-scatter" viewBox="0 0 500 360" role="img" aria-label={`${n(points.length)} citra, partisi ${methods[partition]}, ${selectedK[partition]} klaster. Posisi dan skala X/Y tetap. Sorotan ${focus === null ? "semua klaster" : `C${focus}`}.`}>
-    <path d="M20 15V335H480" />
-    {points.map((p, i) => <circle key={i} cx={px(p[0])} cy={py(p[1])} r={focus === p[partition + 2] ? 2.5 : 1.9} fill={focus === null ? `hsl(${75 + p[partition + 2] * 27} 28% 66%)` : focus === p[partition + 2] ? "var(--amber)" : "var(--bone-dim)"} opacity={focus === null || focus === p[partition + 2] ? 0.85 : 0.18}><title>C{p[partition + 2]} · UMAP ({n(p[0], 3)}, {n(p[1], 3)})</title></circle>)}
-    <text x={480} y={354} textAnchor="end" className="af-small">UMAP 1</text><text x={22} y={13} className="af-small">UMAP 2</text>
-  </svg>;
-}
 
 export default function AnalysisFlow() {
-  const root = useRef<HTMLElement>(null), nav = useRef<HTMLElement>(null);
-  const id = useId();
-  const [stage, setStage] = useState(0), [partition, setPartition] = useState(0);
-  const [focus, setFocus] = useState<number | null>(null), [replay, setReplay] = useState(0);
-  const [reduce, setReduce] = useState(false);
-  const activePartition = stage === 5 ? partition : 3;
-  const named = clusters.find(c => c.id === (focus ?? 0))!;
-  useGSAP(() => {
-    // Motion reveals the selected explanation, never fabricates an embedding trajectory.
-    const media = gsap.matchMedia();
-    media.add("(prefers-reduced-motion: no-preference)", () => {
-      if (reduce) return;
-      gsap.fromTo(".af-visual", { opacity: 0 }, { opacity: 1, duration: 0.7, ease: "power3.out" });
-      gsap.from(".af-node", { opacity: 0, y: 8, duration: 0.7, stagger: 0.018, ease: "power3.out" });
-    });
-    return () => media.revert();
-  }, { scope: root, dependencies: [stage, partition, replay, reduce], revertOnUpdate: true });
-  function go(next: number) { setStage(next); setFocus(next === 8 ? 0 : null); }
-  const scatterVisible = [3, 5, 6, 8].includes(stage);
-  return <section ref={root} className="analysis-flow" aria-labelledby={`${id}-title`}>
-    <header className="af-intro"><div><p className="af-eyebrow">E-WISE / Alur analisis</p><h2 id={`${id}-title`}>Dari citra,<br />menjadi konsensus.</h2></div><p>Satu tahap setiap waktu.<br />Telusuri bagaimana citra dikelompokkan.</p></header>
-    <nav ref={nav} className="af-steps" aria-label="Tahap analisis" onKeyDown={e => {
-      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
-      e.preventDefault();
-      const next = e.key === "Home" ? 0 : e.key === "End" ? stages.length - 1 : Math.max(0, Math.min(stages.length - 1, stage + (e.key === "ArrowRight" ? 1 : -1)));
-      go(next); nav.current?.querySelectorAll("button")[next]?.focus();
-    }}>{stages.map((s, i) => <button key={s[0]} type="button" aria-current={i === stage ? "step" : undefined} aria-controls={`${id}-panel`} onClick={() => go(i)}><span>{String(i + 1).padStart(2, "0")}</span>{s[0]}</button>)}</nav>
-    <section id={`${id}-panel`} className="af-panel" aria-labelledby={`${id}-stage`}>
-      <div className="af-stage-heading"><div><p className="af-eyebrow">{String(stage + 1).padStart(2, "0")} / {stages.length}</p><h3 id={`${id}-stage`}>{stages[stage][1]}</h3></div><p>{stages[stage][2]}</p></div>
-      <div className="af-visual">
-        {[0, 1, 2, 3, 6].includes(stage) && <div className="af-diagram-scroll" tabIndex={0} role="region" aria-label="Diagram skematis, geser bila diperlukan"><Diagram stage={stage} /></div>}
-        {stage === 4 && <KCurves />}
-        {scatterVisible && <div className="af-map-area">
-          {stage === 5 && <div className="af-methods" aria-label="Partisi clustering">{methods.slice(0, 3).map((name, i) => <button type="button" key={name} aria-pressed={partition === i} onClick={() => { setPartition(i); setFocus(null); }}>{name} · K {selectedK[i]}</button>)}</div>}
-          <div className="af-map-grid"><Scatter partition={activePartition} focus={focus} /><div className="af-map-key"><p><strong>{methods[activePartition]}</strong><br />{n(points.length)} citra · {selectedK[activePartition]} klaster</p><label htmlFor={`${id}-cluster`}>Sorot klaster</label><select id={`${id}-cluster`} value={focus ?? "all"} onChange={e => setFocus(e.target.value === "all" ? null : Number(e.target.value))}><option value="all">Semua klaster</option>{Array.from({ length: selectedK[activePartition] }, (_, i) => <option key={i} value={i}>C{i} · {n(points.filter(p => p[activePartition + 2] === i).length)} citra</option>)}</select><p className="af-caption">Posisi 2D tetap, skala X/Y sama. Warna menunjukkan partisi, bukan kelas benar. Clustering memakai 50D.</p>{stage === 8 && focus === null && <p>Pilih klaster untuk melihat nama dan kemiripannya.</p>}{stage === 8 && focus !== null && <><h4>C{named.id} · {named.label}</h4><p>Kemiripan {n(named.sim_top1, 4)}<br />Kedua: {named.label_top2}, {n(named.sim_top2, 4)}<br />Margin {n(named.margin, 4)}</p><p className="af-warning">Kemiripan bukan probabilitas. C9 campuran; C11 dinamai Mobile meski didominasi Player.</p></>}</div></div>
-        </div>}
-        {stage === 7 && <div className="af-bootstrap"><div className="af-protocol"><span>UMAP 50D tetap</span><span>K tetap: {selectedK.join(" / ")}</span><span>{analytics.bootstrap.replicates} refit clustering</span></div><p className="af-metric">{n(analytics.bootstrap.summary.ensemble.mean, 4)}<span>Rata-rata ARI konsensus</span></p><svg viewBox="0 0 800 120" role="img" aria-label={`${analytics.bootstrap.replicates} hasil bootstrap konsensus; rata-rata ARI ${n(analytics.bootstrap.summary.ensemble.mean, 4)}, skala ARI 0 sampai 1`}><line x1={35} x2={765} y1={55} y2={55} className="af-wire" />{analytics.bootstrap.rows.map((row, i) => <circle key={row.bootstrap} cx={35 + row.ARI_ensemble * 730} cy={37 + i % 4 * 12} r={3} className="af-dot"><title>Bootstrap {row.bootstrap}: ARI {n(row.ARI_ensemble, 4)}</title></circle>)}<line x1={35 + analytics.bootstrap.summary.ensemble.mean * 730} x2={35 + analytics.bootstrap.summary.ensemble.mean * 730} y1={15} y2={92} className="af-chosen" /><text x={35} y={113}>0</text><text x={765} y={113} textAnchor="end">1</text></svg><p className="af-caption">Titik: ARI tiap replikasi. Garis: rata-rata. Dibandingkan pada observasi unik yang sama terhadap partisi data penuh. CLIP, UMAP, dan pemilihan K tidak diulang.</p></div>}
-        {stage === 9 && <div className="af-evaluation"><dl>{[["Akurasi penamaan", pct(analytics.evaluation.accuracy)], ["Macro-F1", n(analytics.evaluation.macroF1, 4)], ["ARI klaster vs acuan", n(analytics.evaluation.ariClusters, 4)]].map(([name, value]) => <div key={name}><dt>{name}</dt><dd>{value}</dd></div>)}</dl><svg viewBox="0 0 800 95" role="img" aria-label={`Akurasi penamaan ${pct(analytics.evaluation.accuracy)} pada ${n(analytics.evaluation.count)} citra`}><rect x={30} y={20} width={740} height={24} className="af-muted-fill" /><rect x={30} y={20} width={740 * analytics.evaluation.accuracy} height={24} className="af-accent-fill" /><text x={30} y={78}>0%</text><text x={770} y={78} textAnchor="end">100%</text></svg><p className="af-warning">Kestabilan bukan ketepatan nama. C9 dan C11 perlu tinjauan. Rincian kelas dan evaluasi tersedia di bawah.</p></div>}
-      </div>
-      <div className="af-stage-foot">{stage < 3 ? "Skematis · bukan hasil pengukuran posisi fitur" : stage === 4 ? "Skor terukur pada UMAP 50D" : stage === 7 ? "Bootstrap bersyarat pada embedding dan K tetap" : stage === 9 ? `${n(analytics.evaluation.count)} citra · evaluasi retrospektif` : stage === 8 ? "Nama sistem · skor kemiripan, bukan probabilitas" : "Peta terukur UMAP 2D · diagram alur skematis"}</div>
-    </section>
-    <div className="af-controls"><button type="button" disabled={stage === 0} onClick={() => go(stage - 1)}>Sebelumnya</button><button type="button" disabled={stage === stages.length - 1} onClick={() => go(stage + 1)}>Berikutnya</button><button type="button" onClick={() => setReplay(replay + 1)}>Putar ulang</button><button type="button" className="af-reduce" aria-pressed={reduce} onClick={() => setReduce(!reduce)}>Kurangi gerak: {reduce ? "aktif" : "nonaktif"}</button></div>
-    <p className="af-caption">Tanpa putaran otomatis. Preferensi pengurangan gerak perangkat selalu dihormati.</p>
-    <p className="af-sr" role="status" aria-live="polite" aria-atomic="true">Tahap {stage + 1} dari {stages.length}: {stages[stage][1]}. {stages[stage][2]} {stage === 5 ? methods[partition] : ""}{replay > 0 ? ` · Putar ulang ${replay}` : ""}</p>
-  </section>;
+ const root = useRef<HTMLElement>(null), canvasRef = useRef<HTMLCanvasElement>(null), sphereRef = useRef<HTMLDivElement>(null);
+ const id = useId();
+ const [stage, setStage] = useState(0), [partition, setPartition] = useState(0), [focus, setFocus] = useState<number | null>(null);
+ const [systemReduce, setSystemReduce] = useState(false), [manualReduce, setManualReduce] = useState<boolean | null>(null);
+ const reduce = manualReduce ?? systemReduce;
+ useEffect(() => {
+  const media = matchMedia("(prefers-reduced-motion: reduce)");
+  const update = () => { setSystemReduce(media.matches); setManualReduce(null); };
+  update(); media.addEventListener("change", update);
+  return () => media.removeEventListener("change", update);
+ }, []);
+ useGSAP(() => {
+  const rootNode=root.current, canvas=canvasRef.current, host=sphereRef.current;
+  if(!rootNode || !canvas || !host) return;
+  const context=canvas.getContext('2d'); if(!context) return;
+  const ctx: CanvasRenderingContext2D = context;
+  let renderer: THREE.WebGLRenderer | null = null;
+  const scene=new THREE.Scene(), camera=new THREE.PerspectiveCamera(40,1,.1,100);
+  camera.position.z=4;
+  const globe=new THREE.Group(); scene.add(globe);
+  const geometry=new THREE.SphereGeometry(1,24,16), material=new THREE.MeshBasicMaterial({color:0xa7ba83,wireframe:true,transparent:true,opacity:.25});
+  globe.add(new THREE.Mesh(geometry,material));
+  const arrows: THREE.ArrowHelper[]=[];
+  for(let i=0;i<38;i++){
+   const y=1-2*(i+.5)/38, a=i*2.39996, r=Math.sqrt(1-y*y);
+   const arrow=new THREE.ArrowHelper(new THREE.Vector3(Math.cos(a)*r,y,Math.sin(a)*r),new THREE.Vector3(),1,i%7?0xa7ba83:0xebad4a,.07,.035);
+   globe.add(arrow);arrows.push(arrow);
+  }
+  try { renderer=new THREE.WebGLRenderer({alpha:true,antialias:true}); renderer.setPixelRatio(Math.min(devicePixelRatio,2));host.appendChild(renderer.domElement); }
+  catch { /* ponytail: Canvas sphere keeps the schematic readable without WebGL. */ }
+  let W=0,H=0,phase=0,queued=false,frame=0,stage=0;
+  const manual=reduce;
+  const clamp=(x:number)=>Math.max(0,Math.min(1,x)), mix=(a:number,b:number,t:number)=>a+(b-a)*t;
+  const {xmin,xmax,ymin,ymax}=bounds;
+function line(a: [number,number],b: [number,number],color='#a7ba83',width=1){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke()}
+function dot(x: number,y: number,r: number,col: string){ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()}
+function project(x: number,y: number,z: number,rot=0): [number,number]{const xx=x*Math.cos(rot)+z*Math.sin(rot),zz=-x*Math.sin(rot)+z*Math.cos(rot),f=4/(4+zz);return [cx+xx*R*f,cy+y*R*f]}
+let cx = 0, cy = 0, R = 0;
+function draw(){queued=false;if(!ctx)return;ctx.clearRect(0,0,W,H);const mobile=W<760;cx=mobile?W*.5:W*.69;cy=mobile?H*.69:H*.49;R=Math.min(mobile?W*.34:W*.22,H*.32);const t=manual?1:phase;
+
+ if(stage===0){for(let i=0;i<80;i++){const col=i%10,row=Math.floor(i/10),x=cx+(col-4.5)*R*.185,y=cy+(row-3.5)*R*.19;ctx.save();ctx.translate(x,y);ctx.rotate((col-4.5)*.025);ctx.fillStyle=i%6?'#a4b398':'#c8cebb';ctx.fillRect(-R*.075,-R*.07,R*.15,R*.14);ctx.strokeStyle='#a7ba83';ctx.lineWidth=1;ctx.strokeRect(-R*.045,-R*.04,R*.09,R*.06);line([-R*.02,R*.025],[R*.025,R*.025]);ctx.restore()}}
+ if(stage===1){for(let i=0;i<92;i++){const a=i/92*Math.PI*2;ctx.strokeStyle=i%11?'#7d907066':'#a7ba83';ctx.beginPath();ctx.moveTo(cx-R*1.05,cy+Math.sin(a)*R*.65);ctx.bezierCurveTo(cx-R*.3,cy+Math.sin(a*2+t)*R,cx+R*.2,cy+Math.cos(a)*R,cx+R*1.1,cy+(i/92-.5)*R*1.7);ctx.stroke();dot(cx+R*1.1,cy+(i/92-.5)*R*1.7,1.5,'#a7ba83')} }
+ if(stage===2 && !renderer){const rot=-.4+t*.5;for(let q=0;q<9;q++){ctx.beginPath();for(let j=0;j<=100;j++){const a=j/100*Math.PI*2,lat=(q/8-.5)*Math.PI,p=project(Math.cos(a)*Math.cos(lat),Math.sin(lat),Math.sin(a)*Math.cos(lat),rot);if(j) ctx.lineTo(...p); else ctx.moveTo(...p)}ctx.strokeStyle='#a7ba8366';ctx.stroke()}for(let q=0;q<10;q++){ctx.beginPath();for(let j=0;j<=100;j++){const a=j/100*Math.PI*2,b=q/10*Math.PI,p=project(Math.cos(a)*Math.cos(b),Math.sin(a),Math.cos(a)*Math.sin(b),rot);if(j) ctx.lineTo(...p); else ctx.moveTo(...p)}ctx.strokeStyle='#a7ba8355';ctx.stroke()}for(let i=0;i<38;i++){const y=1-2*(i+.5)/38,a=i*2.39996,s=Math.sqrt(1-y*y),len=mix(.4+(i%8)*.19,1,t),end=project(Math.cos(a)*s*len,y*len,Math.sin(a)*s*len,rot);line([cx,cy],end,i%7?'#a7ba8388':'#a86423',i%7?1:2);const angle=Math.atan2(end[1]-cy,end[0]-cx);line(end,[end[0]-6*Math.cos(angle-.4),end[1]-6*Math.sin(angle-.4)],'#a7ba83');line(end,[end[0]-6*Math.cos(angle+.4),end[1]-6*Math.sin(angle+.4)],'#a7ba83')}}
+ if(stage===3){ctx.font=`${mobile?16:24}px 'IBM Plex Sans'`;ctx.fillStyle='#a7ba83';ctx.textAlign='center';ctx.fillText('L2 · 1024D',cx,cy-R*1.1);ctx.fillText('50D · clustering',cx-R*.68,cy+R*.95);ctx.fillText('2D · peta',cx+R*.68,cy+R*.95);for(let i=0;i<65;i++){const a=i/65*Math.PI*2;for(const side of [-1,1]){ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*R*.13,cy-R*.9);ctx.bezierCurveTo(cx+Math.cos(a)*R*.3,cy-R*.2,cx+side*R*.7+Math.sin(a)*R*.35,cy-R*.1,cx+side*R*.7+Math.sin(a)*R*.35,cy+R*.65+(i%9)*R*.012);ctx.strokeStyle=side<0?'#6e805b66':'#9c764555';ctx.stroke()}}}
+ if([4,5,6,8].includes(stage)){const sc=scale*Math.min(R*2.2/440,R*1.7/300),part=stage===5?partition+2:5;
+ for(let i=0;i<points.length;i++){const p=points[i],x=cx+(p[0]-(xmin+xmax)/2)*sc,y=cy-(p[1]-(ymin+ymax)/2)*sc;const label=p[part];dot(x,y,mobile?1.35:2.1,stage===8&&focus!==null?(p[5]===focus?'#ebad4a':'#495244'):stage===4?'#a7ba83':`hsl(${70+label*3} ${19+label%4*7}% ${28+label%6*7}%)`)}
+ if(stage===6){ctx.font=`${mobile?10:12}px 'IBM Plex Sans'`;ctx.textAlign='center';for(let k=0;k<14;k++){const subset=points.filter(p=>p[5]===k),x=subset.reduce((a,p)=>a+p[0],0)/subset.length,y=subset.reduce((a,p)=>a+p[1],0)/subset.length;const px=cx+(x-(xmin+xmax)/2)*sc,py=cy-(y-(ymin+ymax)/2)*sc;ctx.fillStyle='#1a1f18';ctx.fillRect(px-13,py-9,26,16);ctx.fillStyle='#eeeade';ctx.fillText('C'+k,px,py+3)}}
+ }
+
+ if(renderer){
+  host!.style.visibility=stage===2?'visible':'hidden';
+  if(stage===2){globe.rotation.y=-.4+t*.5;arrows.forEach((a,i)=>a.setLength(mix(.4+(i%8)*.19,1,t),.07,.035));renderer.render(scene,camera);}
+ }
+}
+ function requestDraw(){if(!queued){queued=true;frame=requestAnimationFrame(draw);}}
+ const sections=Array.from(rootNode.querySelectorAll<HTMLElement>('[data-stage]'));
+ function position(){
+  let best=0;sections.forEach((s,i)=>{if(s.getBoundingClientRect().top<innerHeight*.48)best=i;});
+  stage=best;setStage(best);
+  const r=sections[best].getBoundingClientRect();phase=clamp((innerHeight*.48-r.top)/(r.height*.6));requestDraw();
+ }
+ function resize(){
+  W=canvas!.clientWidth;H=canvas!.clientHeight;const d=Math.min(devicePixelRatio,2);
+  canvas!.width=W*d;canvas!.height=H*d;ctx!.setTransform(d,0,0,d,0,0);
+  if(renderer){const w=host!.clientWidth,h=host!.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();}
+  position();
+ }
+ const observer=new ResizeObserver(resize);observer.observe(canvas);
+ ScrollTrigger.create({trigger:rootNode,start:'top bottom',end:'bottom top',onUpdate:position});
+ window.addEventListener('scroll',position,{passive:true});window.addEventListener('resize',resize);resize();
+ return ()=>{
+  observer.disconnect();window.removeEventListener('scroll',position);window.removeEventListener('resize',resize);cancelAnimationFrame(frame);
+  geometry.dispose();material.dispose();arrows.forEach(a=>{a.line.geometry.dispose();a.cone.geometry.dispose();[a.line.material,a.cone.material].flat().forEach(m=>m.dispose());});
+  renderer?.dispose();renderer?.domElement.remove();
+ };
+ },{scope:root,dependencies:[partition,reduce,focus],revertOnUpdate:true});
+ const named=focus===null?null:clusters.find(c=>c.id===focus);
+ return <section ref={root} className="analysis-flow" aria-labelledby={`${id}-title`} data-reduced-motion={reduce}>
+  <header className="af-intro"><h2 id={`${id}-title`}>Dari citra, menjadi konsensus.</h2><button type="button" aria-pressed={reduce} onClick={()=>setManualReduce(!reduce)}>Kurangi gerak: {reduce?'aktif':'nonaktif'}</button></header>
+  <nav className="af-index" aria-label="Tahap analisis">{stages.map((s,i)=><a key={s[0]} href={`#${id}-${i}`} aria-current={stage===i?'step':undefined}>{s[0]}</a>)}</nav>
+  <div className="af-journey">
+   <div className="af-field" aria-hidden="true"><canvas ref={canvasRef}/><div ref={sphereRef} className="af-sphere"/><div className="af-dimension">{['2.660 citra','1024D','‖x̂‖₂ = 1','50D ∥ 2D','K: 9 / 9 / 14',`${methods[partition]} · ${selectedK[partition]}`,'14 klaster','50 refit','10 prompt','2.660 acuan'][stage]}</div><p className="af-field-caption">{stages[stage][3]}</p></div>
+   {stages.map((s,i)=><section key={s[0]} id={`${id}-${i}`} data-stage={i} className={`af-scene ${[4,7,9].includes(i)?'af-evidence':''}`} aria-labelledby={`${id}-heading-${i}`}>
+    <div className="af-copy"><p className="af-eyebrow">{String(i+1).padStart(2,'0')} / {s[0]}</p><h3 id={`${id}-heading-${i}`}>{s[1]}</h3><p>{s[2]}</p>
+     {i===1&&<p className="af-formula">citra ⟶ x ∈ ℝ¹⁰²⁴</p>}
+     {i===2&&<p className="af-formula">x̂ = x / ‖x‖₂</p>}
+     {i===3&&<p className="af-caption">50D tidak direduksi lagi menjadi 2D.</p>}
+     {i===5&&<><div className="af-methods" role="group" aria-label="Partisi dasar">{methods.slice(0,3).map((m,j)=><button key={m} type="button" aria-pressed={partition===j} onClick={()=>setPartition(j)}>{m} · K {selectedK[j]}</button>)}</div><p className="af-caption" role="status">Partisi {methods[partition]} aktif · {n(points.length)} citra</p></>}
+     {i===6&&<><ConsensusCurve/><p className="af-formula">Aᵢⱼ = ⅓ ∑ 𝟙(ℓᵢ = ℓⱼ)</p><p className="af-caption">Silhouette pada D, bukan UMAP 50D. Posisi 2D tetap.</p></>}
+     {i===8&&<><label htmlFor={`${id}-cluster`}>Sorot klaster</label><select id={`${id}-cluster`} value={focus??'all'} onChange={e=>setFocus(e.target.value==='all'?null:Number(e.target.value))}><option value="all">Semua klaster</option>{clusters.map(c=><option key={c.id} value={c.id}>C{c.id} · {c.label} · {n(c.n_images)} citra</option>)}</select>{named&&<p>C{named.id} · {named.label}<br/>Kemiripan {n(named.sim_top1,4)}<br/>Kedua: {named.label_top2}, {n(named.sim_top2,4)}<br/>Margin {n(named.margin,4)}</p>}<p className="af-warning">C9 campuran. C11 dinamai Mobile meski didominasi Player. Perlu tinjauan.</p></>}
+    </div>
+    {i===4&&<KCurves/>}
+    {i===7&&<div className="af-bootstrap"><p className="af-metric">{n(analytics.bootstrap.summary.ensemble.mean,4)}<span>Rata-rata ARI konsensus</span></p><svg viewBox="0 0 800 220" role="img" aria-label="50 replikasi bootstrap asli, sumbu ARI 0 sampai 1"><text x={0} y={20}>1</text><text x={0} y={190}>0</text>{analytics.bootstrap.rows.map((row,j)=><rect key={row.bootstrap} x={30+j*15} y={190-row.ARI_ensemble*170} width={9} height={row.ARI_ensemble*170} className="af-accent-fill"><title>Bootstrap {row.bootstrap}: ARI {n(row.ARI_ensemble,4)}</title></rect>)}</svg><p className="af-caption">CLIP, UMAP, dan pemilihan K tidak diulang. SD {n(analytics.bootstrap.summary.ensemble.stdSample,4)}. Bukan interval keyakinan akurasi.</p></div>}
+    {i===9&&<div className="af-evaluation"><dl>{[['Akurasi penamaan',pct(analytics.evaluation.accuracy)],['Macro-F1',n(analytics.evaluation.macroF1,4)],['ARI klaster vs acuan',n(analytics.evaluation.ariClusters,4)]].map(([name,value])=><div key={name}><dt>{name}</dt><dd>{value}</dd></div>)}</dl><p className="af-caption">Kestabilan bukan ketepatan nama. Rincian statistik tetap tersedia di bawah.</p></div>}
+   </section>)}
+  </div>
+ </section>;
+}
+function ConsensusCurve(){
+ const rows=analytics.selection.consensusCurves,lo=Math.min(...rows.map(r=>r.silhouetteCoassociation)),hi=Math.max(...rows.map(r=>r.silhouetteCoassociation));
+ const x=(k:number)=>30+(k-9)/5*270,y=(v:number)=>140-(v-lo)/(hi-lo)*110;
+ return <figure className="af-consensus-curve"><figcaption>Pemilihan K konsensus · D</figcaption><svg viewBox="0 0 330 180" role="img" aria-label="Silhouette co-association K 9 sampai 14, maksimum K 14"><path d="M30 20V150H310"/><polyline className="af-curve" points={rows.map(r=>`${x(r.k)},${y(r.silhouetteCoassociation)}`).join(' ')}/>{rows.map(r=><circle key={r.k} cx={x(r.k)} cy={y(r.silhouetteCoassociation)} r={3} className="af-accent-fill"><title>K {r.k}: {n(r.silhouetteCoassociation,4)}</title></circle>)}<text x={30} y={175}>K 9</text><text x={280} y={175}>K 14</text></svg></figure>;
 }

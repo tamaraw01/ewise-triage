@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
@@ -14,5 +15,8 @@ test('flow preserves shared geometry and evidence boundaries',()=>{
  assert.match(src,/UMAP 2D langsung dari embedding L2/);
  assert.match(src,/CLIP, UMAP, dan pemilihan K tidak diulang/);
  assert.match(src,/bukan probabilitas/);
- assert.match(src,/prefers-reduced-motion: no-preference/);
+ assert.match(src,/prefers-reduced-motion: reduce/);
+ assert.match(src,/revertOnUpdate:true/);
+ assert.ok(src.indexOf('["Pilihan K"') < src.indexOf('["Clustering"'));
+ assert.ok(src.indexOf('["Bootstrap"') < src.indexOf('["Penamaan"'));
 });
