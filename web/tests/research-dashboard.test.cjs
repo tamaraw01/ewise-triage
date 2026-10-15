@@ -60,7 +60,7 @@ test('complete analytics denominators reconcile independently of truncated truth
   assert.equal(analytics.imageAudit.excluded.longSideBins.reduce((s, b) => s + b.count, 0), 1301);
   assert.equal(analytics.bootstrap.replicates, 50);
   assert.match(source, /<details/);
-  assert.match(source, /bukan interval kepercayaan/);
+  assert.match(source, /bukan probabilitas/);
   assert.equal(analytics.evaluation.triageIllustration.reviewCount + analytics.evaluation.triageIllustration.acceptedCount, 2660);
   assert.equal(analytics.clusterAudit.crossTab.values.length, 14);
   assert.ok(analytics.clusterAudit.crossTab.values.every(r => r.length === 10));
