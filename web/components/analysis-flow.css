@@ -1,0 +1,87 @@
+.analysis-flow{min-width:0;margin:0 0 64px;color:var(--bone);--af-line:var(--edge)}
+.analysis-flow *{box-sizing:border-box}
+.analysis-flow .af-intro{display:flex;align-items:flex-end;justify-content:space-between;gap:28px;margin-bottom:28px}
+.analysis-flow .af-eyebrow{font-size:12px;color:var(--green);margin:0 0 12px}
+.analysis-flow h2{font-size:clamp(32px,4.5vw,60px);line-height:1.05;letter-spacing:-1.5px;font-weight:500;margin:0}
+.analysis-flow .af-intro>p{font-size:14px;line-height:1.65;color:var(--bone-dim);margin:0}
+.analysis-flow button,.analysis-flow select{font:inherit;font-size:13px;min-height:44px;min-width:44px;border:1px solid var(--af-line);border-radius:2px;color:var(--bone);background:transparent;padding:10px 14px;cursor:pointer}
+.analysis-flow button:hover:not(:disabled){background:var(--iron-hi)}
+.analysis-flow button:disabled{opacity:.45;cursor:default}
+.analysis-flow button:focus-visible,.analysis-flow select:focus-visible,.analysis-flow [tabindex]:focus-visible{outline:3px solid var(--green);outline-offset:3px}
+.analysis-flow .af-steps{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));border-block:1px solid var(--af-line);margin-bottom:24px}
+.analysis-flow .af-steps button{border:0;border-radius:0;text-align:left;min-height:78px;padding:12px 8px;font-size:12px;position:relative;overflow-wrap:anywhere}
+.analysis-flow .af-steps button span{display:block;color:var(--bone-dim);font-size:11px;margin-bottom:10px;font-variant-numeric:tabular-nums}
+.analysis-flow .af-steps button[aria-current=step]{background:var(--iron);box-shadow:inset 0 -3px var(--green)}
+.analysis-flow .af-steps button[aria-current=step] span{color:var(--green)}
+.analysis-flow .af-panel{border:1px solid var(--af-line);background:var(--iron);min-width:0}
+.analysis-flow .af-stage-heading{padding:24px 28px 0;display:flex;justify-content:space-between;gap:32px;align-items:flex-start}
+.analysis-flow h3{font-size:clamp(23px,2.7vw,30px);line-height:1.2;font-weight:500;letter-spacing:-.6px;margin:0}
+.analysis-flow .af-stage-heading>p{max-width:360px;margin:0;font-size:13px;line-height:1.6;color:var(--bone-dim)}
+.analysis-flow .af-visual{min-height:300px}
+.analysis-flow svg{display:block;width:100%;height:auto;overflow:visible}
+.analysis-flow svg text{fill:var(--bone);font-family:inherit;font-size:19px;stroke:none}
+.analysis-flow svg .af-small{font-size:14px;fill:var(--bone-dim)}
+.analysis-flow svg path,.analysis-flow svg .af-wire{stroke:var(--edge);stroke-width:1.5;fill:none}
+.analysis-flow .af-node rect{fill:var(--void);stroke:var(--edge);stroke-width:1.5}
+.analysis-flow svg .af-accent{fill:var(--green)}
+.analysis-flow svg .af-accent-fill,.analysis-flow svg .af-dot{fill:var(--green)}
+.analysis-flow svg .af-muted-fill{fill:var(--edge)}
+.analysis-flow svg .af-chosen{stroke:var(--green);stroke-width:2}
+.analysis-flow .af-diagram-scroll{max-width:100%;overflow-x:auto;padding:0 16px}
+.analysis-flow .af-diagram{min-width:680px;max-height:360px}
+.analysis-flow .af-map-area{padding:16px 28px 24px;border-top:1px solid var(--edge);margin-top:20px}
+.analysis-flow .af-methods{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.analysis-flow button[aria-pressed=true]{border-color:var(--green);color:var(--green);background:var(--void)}
+.analysis-flow .af-map-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(190px,1fr);gap:28px;align-items:center}
+.analysis-flow .af-scatter{max-width:650px;max-height:440px}
+.analysis-flow .af-map-key{font-size:13px;line-height:1.65;min-width:0}
+.analysis-flow .af-map-key p{margin:0 0 16px}
+.analysis-flow .af-map-key label{display:block;margin-bottom:6px}
+.analysis-flow .af-map-key select{display:block;width:100%;max-width:280px;background:var(--void);margin-bottom:16px}
+.analysis-flow .af-map-key h4{font-size:18px;font-weight:500;margin:22px 0 8px}
+.analysis-flow .af-caption{font-size:12px;line-height:1.6;color:var(--bone-dim);margin:12px 0 0}
+.analysis-flow .af-warning{color:var(--amber);font-size:13px;line-height:1.65}
+.analysis-flow .af-stage-foot{border-top:1px solid var(--edge);padding:14px 28px;font-size:12px;line-height:1.6;color:var(--bone-dim)}
+.analysis-flow .af-controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+.analysis-flow .af-reduce{margin-left:auto}
+.analysis-flow .af-curves{padding:36px 28px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.analysis-flow .af-curves figure{margin:0;min-width:0}
+.analysis-flow .af-curves figcaption{font-size:14px;display:flex;justify-content:space-between;gap:8px}
+.analysis-flow .af-curves strong{font-weight:500;color:var(--green)}
+.analysis-flow .af-curves p{font-size:12px;line-height:1.6;margin:0;color:var(--bone-dim)}
+.analysis-flow svg .af-curve{fill:none;stroke:var(--bone);stroke-width:2}
+.analysis-flow .af-bootstrap,.analysis-flow .af-evaluation{padding:32px 28px}
+.analysis-flow .af-protocol{display:flex;gap:12px;flex-wrap:wrap;color:var(--bone-dim);font-size:13px}
+.analysis-flow .af-protocol span{border:1px solid var(--edge);padding:12px}
+.analysis-flow .af-metric{color:var(--green);font-size:50px;margin:28px 0 20px;font-variant-numeric:tabular-nums}
+.analysis-flow .af-metric span{display:block;font-size:13px;color:var(--bone-dim);margin-top:5px}
+.analysis-flow .af-evaluation dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;margin:0 0 28px}
+.analysis-flow .af-evaluation dt{font-size:13px;color:var(--bone-dim)}
+.analysis-flow .af-evaluation dd{margin:8px 0 0;color:var(--green);font-size:clamp(24px,3vw,40px);font-variant-numeric:tabular-nums}
+.analysis-flow .af-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+@media(max-width:760px){
+.analysis-flow{margin-bottom:44px}
+.analysis-flow .af-intro{display:block}
+.analysis-flow .af-intro>p{margin-top:18px;font-size:13px}
+.analysis-flow .af-steps{grid-template-columns:repeat(5,minmax(0,1fr));margin-bottom:18px}
+.analysis-flow .af-steps button{min-height:68px;padding:10px 6px;font-size:11px}
+.analysis-flow .af-steps button span{margin-bottom:7px}
+.analysis-flow .af-stage-heading{padding:20px 18px 0;display:block}
+.analysis-flow .af-stage-heading>p{margin-top:14px;font-size:12px}
+.analysis-flow .af-diagram-scroll{padding:0 12px}
+.analysis-flow .af-diagram-scroll:after{content:'Geser diagram untuk melihat seluruh alur';display:block;font-size:11px;color:var(--bone-dim);padding:4px 6px 16px}
+.analysis-flow .af-map-area{padding:16px 16px 20px}
+.analysis-flow .af-map-grid{grid-template-columns:1fr;gap:12px}
+.analysis-flow .af-map-key select{max-width:none}
+.analysis-flow .af-curves{grid-template-columns:1fr;padding:24px 18px;gap:30px}
+.analysis-flow .af-curves svg{max-width:400px;margin:auto}
+.analysis-flow .af-stage-foot{padding:13px 18px;font-size:11px}
+.analysis-flow .af-controls button{font-size:12px;padding:10px}
+.analysis-flow .af-reduce{margin-left:0}
+.analysis-flow .af-bootstrap,.analysis-flow .af-evaluation{padding:24px 18px}
+.analysis-flow .af-evaluation dl{grid-template-columns:1fr;gap:20px}
+.analysis-flow .af-evaluation dd{font-size:32px}
+.analysis-flow .af-protocol{gap:6px}
+.analysis-flow .af-protocol span{font-size:12px;padding:8px}
+}
+@media(prefers-reduced-motion:reduce){.analysis-flow *{scroll-behavior:auto!important;animation:none!important;transition:none!important}}

@@ -7,6 +7,7 @@ import Image from "next/image";
 import dynamic from "next/dynamic";
 import TriagePanel from "@/components/TriagePanel";
 import ResearchDashboard from "@/components/ResearchDashboard";
+import AnalysisFlow from "@/components/AnalysisFlow";
 import ExplorationTools, { researchClusters } from "@/components/ExplorationTools";
 const ClusterField = dynamic(() => import("@/components/ClusterField"), {
   ssr: false,
@@ -54,7 +55,7 @@ export default function Page() {
       <div ref={stage} className="dashboard-stage">
         <div id="panel-0" role="tabpanel" aria-labelledby="tab-0" hidden={section !== "Konsol"}><TriagePanel active={section === "Konsol"} /></div>
         <div id="panel-1" role="tabpanel" aria-labelledby="tab-1" hidden={section !== "Cluster Explorer"}>{explorerOpened && <Explorer />}</div>
-        <div id="panel-2" role="tabpanel" aria-labelledby="tab-2" hidden={section !== "Statistik"}>{section === "Statistik" && <ResearchDashboard />}</div>
+        <div id="panel-2" role="tabpanel" aria-labelledby="tab-2" hidden={section !== "Statistik"}>{section === "Statistik" && <><AnalysisFlow /><details className="statistics-detail"><summary>Jelajahi statistik lengkap</summary><ResearchDashboard /></details></>}</div>
       </div>
       <footer className="dashboard-footer">© {new Date().getFullYear()} E-WISE</footer>
     </main>

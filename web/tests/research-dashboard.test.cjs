@@ -23,6 +23,9 @@ test('descriptive cluster counts use exact dominant counts, not rounded purity',
   assert.equal(stats.min, 31);
   assert.equal(stats.max, 286);
   assert.ok(Math.abs(stats.mean - 190) < 1e-10);
+  const sorted = clusters.map(c => c.n_images).sort((a, b) => a - b);
+  assert.equal(stats.median, (sorted[6] + sorted[7]) / 2);
+  assert.match(source, /"Median", number\(stats\.median, 1\)/);
   assert.equal(dominant(clusters.find(c => c.id === 11))[1], 242);
   assert.ok(dominant(clusters.find(c => c.id === 9))[1] / clusters.find(c => c.id === 9).n_images < 0.5);
 });
@@ -56,7 +59,7 @@ test('metric sorting and CSV retain every cluster without changing input', () =>
 test('bootstrap card and plot both show mean ARI', () => {
   assert.match(source, /Rata-rata ARI Ensemble/);
   assert.match(source, /number\(s\.mean, 4\)/);
-  assert.doesNotMatch(source, /s\.median/);
+  assert.doesNotMatch(source, /\bs\.median/);
   const mean = analytics.bootstrap.rows.reduce((sum, row) => sum + row.ARI_ensemble, 0) / analytics.bootstrap.rows.length;
   assert.ok(Math.abs(mean - analytics.bootstrap.summary.ensemble.mean) < 1e-12);
   assert.equal(mean.toFixed(4), '0.9417');
