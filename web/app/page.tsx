@@ -14,7 +14,7 @@ const ClusterField = dynamic(() => import("@/components/ClusterField"), {
   loading: () => <div className="field-loading" role="status">Memuat peta klaster…</div>,
 });
 import meta from "@/data/meta.json";
-import { LANES, fixed4 } from "@/lib/data";
+import { LANES, fixed4, scatter } from "@/lib/data";
 
 gsap.registerPlugin(useGSAP);
 
@@ -79,7 +79,7 @@ function Explorer() {
       <div className="workspace-heading"><h2 id="cluster-title">Referensi perangkat</h2><p>{meta.dataset_images_used.toLocaleString("id-ID")} citra · {clusters.length} klaster</p></div>
       <div className="explorer">
         <figure className="cluster-atlas">
-          <div className="panel-h"><h3>Peta sebaran</h3><span className="spec num">{meta.scatter_points.toLocaleString("id-ID")} sampel · 2D</span></div>
+          <div className="panel-h"><h3>Peta sebaran</h3><span className="spec num">{scatter.length.toLocaleString("id-ID")} sampel · 2D</span></div>
           <ClusterField selected={selected} onSelect={setSelected} />
           <div className="atlas-controls" aria-label="Pilih klaster pada peta">
             {clusters.map(x => <button key={x.id} className="cluster-key num" type="button" aria-pressed={selected === x.id} onClick={() => setSelected(x.id)}>C{x.id}</button>)}
