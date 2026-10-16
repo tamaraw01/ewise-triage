@@ -18,7 +18,7 @@ import { LANES, fixed4, scatter } from "@/lib/data";
 
 gsap.registerPlugin(useGSAP);
 
-const sections = ["Konsol", "Cluster Explorer", "Statistik"] as const;
+const sections = ["Konsol", "Cluster Explorer", "Statistik", "Proses"] as const;
 type Section = (typeof sections)[number];
 const clusters = researchClusters;
 gsap.config({ nullTargetWarn: false }); // panels share one timeline; absent targets are expected
@@ -55,7 +55,8 @@ export default function Page() {
       <div ref={stage} className="dashboard-stage">
         <div id="panel-0" role="tabpanel" aria-labelledby="tab-0" hidden={section !== "Konsol"}><TriagePanel active={section === "Konsol"} /></div>
         <div id="panel-1" role="tabpanel" aria-labelledby="tab-1" hidden={section !== "Cluster Explorer"}>{explorerOpened && <Explorer />}</div>
-        <div id="panel-2" role="tabpanel" aria-labelledby="tab-2" hidden={section !== "Statistik"}>{section === "Statistik" && <><AnalysisFlow /><details className="statistics-detail"><summary>Jelajahi statistik lengkap</summary><ResearchDashboard /></details></>}</div>
+        <div id="panel-2" role="tabpanel" aria-labelledby="tab-2" hidden={section !== "Statistik"}>{section === "Statistik" && <ResearchDashboard />}</div>
+        <div id="panel-3" role="tabpanel" aria-labelledby="tab-3" hidden={section !== "Proses"}>{section === "Proses" && <AnalysisFlow />}</div>
       </div>
       <footer className="dashboard-footer">© {new Date().getFullYear()} E-WISE</footer>
     </main>
