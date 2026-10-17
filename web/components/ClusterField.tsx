@@ -69,7 +69,7 @@ export default function ClusterField({ selected, onSelect }: { selected: number;
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     el.prepend(renderer.domElement);
 
-    const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const motion = matchMedia("(prefers-reduced-motion: reduce)");
     const tilt = { x: 0, y: 0 };
     let visible = true, raf = 0;
     const resize = () => {
@@ -98,13 +98,13 @@ export default function ClusterField({ selected, onSelect }: { selected: number;
     resize();
 
     const move = (e: PointerEvent) => {
-      if (still) return;
+      if (motion.matches) return;
       const r = el.getBoundingClientRect();
       tilt.x = (e.clientX - r.left) / r.width - 0.5;
       tilt.y = (e.clientY - r.top) / r.height - 0.5;
       invalidate();
     };
-    const leave = () => { tilt.x = 0; tilt.y = 0; invalidate(); };
+    const leave = () => { if (!tilt.x && !tilt.y) return; tilt.x = 0; tilt.y = 0; invalidate(); };
     const pick = (e: MouseEvent) => {
       const r = el.getBoundingClientRect();
       let best = -1, d = 18 * 18;
@@ -122,13 +122,29 @@ export default function ClusterField({ selected, onSelect }: { selected: number;
         u.uPrev.value = u.uSel.value;
         u.uSel.value = id;
         gsap.killTweensOf(u.uT);
-        gsap.fromTo(u.uT, { value: 0 }, { value: 1, duration: still ? 0 : 0.55, ease: "power3.out", onUpdate: invalidate });
+        if (motion.matches || !visible || document.hidden) u.uT.value = 1;
+        else gsap.fromTo(u.uT, { value: 0 }, { value: 1, duration: 0.55, ease: "power3.out", onUpdate: invalidate });
         invalidate();
       },
     };
     const ro = new ResizeObserver(resize);
     ro.observe(el);
-    const resume = invalidate;
+    const resume = () => {
+      if (!visible || document.hidden) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+        gsap.killTweensOf(u.uT);
+        u.uT.value = 1;
+      } else invalidate();
+    };
+    const reduceMotion = () => {
+      if (!motion.matches) return;
+      gsap.killTweensOf(u.uT);
+      u.uT.value = 1;
+      tilt.x = tilt.y = field.rotation.x = field.rotation.y = 0;
+      invalidate();
+    };
+    motion.addEventListener("change", reduceMotion);
     const io = new IntersectionObserver(([en]) => { visible = en.isIntersecting; resume(); });
     io.observe(el);
     document.addEventListener("visibilitychange", resume);
@@ -141,6 +157,7 @@ export default function ClusterField({ selected, onSelect }: { selected: number;
       cancelAnimationFrame(raf);
       ro.disconnect(); io.disconnect();
       document.removeEventListener("visibilitychange", resume);
+      motion.removeEventListener("change", reduceMotion);
       renderer.domElement.removeEventListener("webglcontextlost", contextLost);
       el.removeEventListener("pointermove", move);
       el.removeEventListener("pointerleave", leave);

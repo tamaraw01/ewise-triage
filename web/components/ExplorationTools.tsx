@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import ClusterGallery from "@/components/ClusterGallery";
 import rawClusters from "@/data/clusters.json";
+import gallery from "@/data/gallery.json";
 import { CLUSTERS_META, LANES, fixed4, type LaneCode } from "@/lib/data";
 
-// truth_mix lists leading classes only; n_images remains the denominator.
+// Full filename-label cross-tab, not truncated truth_mix.
 export const researchClusters = rawClusters.map(raw => {
-  const dominant = Object.entries(raw.truth_mix).sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))[0];
+  const mix = gallery.clusters.find(c => c.id === raw.id)!.mix;
+  const dominant = Object.entries(mix).sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))[0];
   return { ...CLUSTERS_META[raw.id], n: raw.n_images, sim: raw.sim_top1, zs: raw.margin, name: raw.label,
     dom: dominant[0], pur: (dominant[1] ?? 0) / raw.n_images * 100 };
 });
@@ -31,7 +34,7 @@ export default function ExplorationTools({ selected, onSelect }: { selected: num
   const [compareId, setCompareId] = useState(10);
   const visible = filterClusters(query, lane, evidence, sort);
   const visibleTotal = visible.reduce((sum, c) => sum + c.n, 0);
-  const first = researchClusters.find(c => c.id === selected)!;
+  const first = researchClusters.find(c => c.id === selected) ?? researchClusters[0];
   const second = researchClusters.find(c => c.id === compareId && c.id !== selected) ?? researchClusters.find(c => c.id !== selected)!;
   return (
     <div className="exploration-tools">
@@ -59,17 +62,20 @@ export default function ExplorationTools({ selected, onSelect }: { selected: num
       </section>
       <section className="cluster-comparison" aria-labelledby="comparison-title">
         <h3 id="comparison-title">Bandingkan dua klaster</h3>
-        <div className="comparison-pickers"><label>Klaster A<select value={selected} onChange={event => onSelect(Number(event.target.value))}>{researchClusters.map(c => <option key={c.id} value={c.id}>C{c.id} · {c.sub}</option>)}</select></label><label>Klaster B<select value={second.id} onChange={event => setCompareId(Number(event.target.value))}>{researchClusters.filter(c => c.id !== selected).map(c => <option key={c.id} value={c.id}>C{c.id} · {c.sub}</option>)}</select></label></div>
+        <div className="comparison-pickers"><label>Kelompok A<select value={selected} onChange={event => onSelect(Number(event.target.value))}>{researchClusters.map(c => <option key={c.id} value={c.id}>C{c.id} · {c.sub}</option>)}</select></label><label>Kelompok B<select value={second.id} onChange={event => setCompareId(Number(event.target.value))}>{researchClusters.filter(c => c.id !== selected).map(c => <option key={c.id} value={c.id}>C{c.id} · {c.sub}</option>)}</select></label></div>
         <table><caption className="dossier-note">A mengikuti pilihan peta atau indeks. Perbandingan memakai seluruh dataset.</caption><thead><tr><th scope="col">Karakteristik klaster</th><th scope="col">C{first.id}</th><th scope="col">C{second.id}</th></tr></thead><tbody>
-          <tr><th scope="row">Citra</th><td className="num">{first.n}</td><td className="num">{second.n}</td></tr>
+          <tr><th scope="row">Citra</th><td className="num">{first.n.toLocaleString("id-ID")}</td><td className="num">{second.n.toLocaleString("id-ID")}</td></tr>
+          <tr><th scope="row">Porsi dataset</th><td className="num">{percent(first.n / total * 100)}%</td><td className="num">{percent(second.n / total * 100)}%</td></tr>
           <tr><th scope="row">Kemurnian label dominan</th><td className="num">{percent(first.pur)}%</td><td className="num">{percent(second.pur)}%</td></tr>
           <tr><th scope="row">Selisih skor label</th><td className="num">{fixed4(first.zs)}</td><td className="num">{fixed4(second.zs)}</td></tr>
           <tr><th scope="row">Label dominan</th><td>{first.dom}</td><td>{second.dom}</td></tr>
           <tr><th scope="row">Label sistem</th><td>{first.name}</td><td>{second.name}</td></tr>
-          <tr><th scope="row">Jalur</th><td>{first.lane}</td><td>{second.lane}</td></tr>
+          <tr><th scope="row">Jalur</th><td>{first.lane} · {LANES[first.lane].desc}</td><td>{second.lane} · {LANES[second.lane].desc}</td></tr>
+          <tr><th scope="row">Label anggota</th>{[first, second].map(c => <td key={c.id}>{Object.entries(gallery.clusters.find(item => item.id === c.id)!.mix).filter(([, count]) => count).sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0)).map(([label, count]) => <span className="mix-label" key={label}>{label} <span className="num">{count}</span></span>)}</td>)}</tr>
         </tbody></table>
-        {(first.name !== first.dom || second.name !== second.dom) && <p className="caveat">C9 dan C11 memiliki label yang tidak sesuai dengan jenis perangkat dominan. Periksa barang secara manual.</p>}
-        <details><summary>Arti metrik</summary><p className="dossier-note">Kemurnian menunjukkan porsi jenis perangkat dominan dalam klaster, bukan akurasi hasil foto baru. Selisih skor label membandingkan dua label teratas, bukan tingkat keyakinan hasil analisis.</p></details>
+        {(first.name !== first.dom || second.name !== second.dom) && <p className="caveat">{[first, second].filter(c => c.name !== c.dom).map(c => `C${c.id}: label sistem ${c.name}, label dominan ${c.dom}.`).join(" ")} Periksa barang secara manual.</p>}
+        <div className="comparison-galleries">{[first, second].map(c => <div key={c.id}><h4>C{c.id} · {c.sub}</h4><ClusterGallery selected={c.id} /></div>)}</div>
+        <details><summary>Arti metrik</summary><p className="dossier-note">Label anggota berasal dari nama file, bukan anotasi independen. Kemurnian menunjukkan porsi label dominan dalam kelompok, bukan akurasi hasil foto baru. Selisih skor label membandingkan dua label teratas, bukan tingkat keyakinan hasil analisis.</p></details>
       </section>
       <style jsx>{`
         .exploration-tools { min-width:0; }
@@ -100,6 +106,9 @@ export default function ExplorationTools({ selected, onSelect }: { selected: num
         th:first-child { width:46%; padding-left:0; }
         th { font-weight:500; }
         tbody th { color:var(--bone-dim); }
+        .comparison-galleries { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; margin-top:24px; }
+        @media(max-width:560px) { .comparison-galleries { grid-template-columns:1fr; } }
+        .mix-label { display:block; margin-bottom:6px; }
         .exploration-empty { padding:20px 0; font-size:14px; }
         @media(max-width:560px) { .exploration-filters,.comparison-pickers { grid-template-columns:1fr; } .lane-distribution { gap:0 12px; } .distribution-head,.cluster-distribution button { grid-template-columns:minmax(0,1fr) 54px 54px; gap:8px; } th,td { padding:12px 4px; } }
       `}</style>

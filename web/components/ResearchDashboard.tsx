@@ -9,8 +9,8 @@ import analytics from "../data/analytics.json";
 
 type Cluster = (typeof clusters)[number];
 type Metric = "n_images" | "purity" | "margin";
-// Display names distinguish groups; raw zero-shot labels stay intact for evaluation.
-export const clusterName = (c: Cluster) => c.id === 9 ? "Campuran" : c.id === 11 ? "Player" : `${c.label}${({ 2: " I", 5: " II", 4: " I", 10: " II", 8: " I", 12: " II" } as Record<number, string>)[c.id] ?? ""}`;
+import { CLUSTERS_META } from "../lib/data";
+export const clusterName = (c: Cluster) => CLUSTERS_META[c.id].sub;
 const number = (n: number, digits = 0) => n.toLocaleString("id-ID", { maximumFractionDigits: digits });
 const percent = (n: number) => `${(n * 100).toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 const cross = analytics.clusterAudit.crossTab;

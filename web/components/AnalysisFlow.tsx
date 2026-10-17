@@ -7,6 +7,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import * as THREE from "three";
 import analytics from "../data/analytics.json";
 import clusters from "../data/clusters.json";
+import { CLUSTERS_META } from "../lib/data";
 import flow from "../data/analysis-flow.json";
 import "./analysis-flow.css";
 
@@ -135,7 +136,7 @@ function draw(){queued=false;if(!ctx)return;ctx.clearRect(0,0,W,H);const mobile=
      {i===3&&<p className="af-caption">50D tidak direduksi lagi menjadi 2D.</p>}
      {i===5&&<><div className="af-methods" role="group" aria-label="Partisi dasar">{methods.slice(0,3).map((m,j)=><button key={m} type="button" aria-pressed={partition===j} onClick={()=>setPartition(j)}>{m} · K {selectedK[j]}</button>)}</div><p className="af-caption" role="status">Partisi {methods[partition]} aktif · {n(points.length)} citra</p></>}
      {i===6&&<><ConsensusCurve/><p className="af-formula">Aᵢⱼ = ⅓ ∑ 𝟙(ℓᵢ = ℓⱼ)</p><p className="af-caption">Silhouette pada D, bukan UMAP 50D. Posisi 2D tetap.</p></>}
-     {i===8&&<><label htmlFor={`${id}-cluster`}>Sorot klaster</label><select id={`${id}-cluster`} value={focus??'all'} onChange={e=>setFocus(e.target.value==='all'?null:Number(e.target.value))}><option value="all">Semua klaster</option>{clusters.map(c=><option key={c.id} value={c.id}>C{c.id} · {c.label} · {n(c.n_images)} citra</option>)}</select>{named&&<p>C{named.id} · {named.label}<br/>Kemiripan {n(named.sim_top1,4)}<br/>Kedua: {named.label_top2}, {n(named.sim_top2,4)}<br/>Margin {n(named.margin,4)}</p>}<p className="af-warning">C9 campuran. C11 dinamai Mobile meski didominasi Player. Perlu tinjauan.</p></>}
+     {i===8&&<><label htmlFor={`${id}-cluster`}>Sorot klaster</label><select id={`${id}-cluster`} value={focus??'all'} onChange={e=>setFocus(e.target.value==='all'?null:Number(e.target.value))}><option value="all">Semua klaster</option>{clusters.map(c=><option key={c.id} value={c.id}>C{c.id} · {CLUSTERS_META[c.id].sub} · {n(c.n_images)} citra</option>)}</select>{named&&<p>C{named.id} · {CLUSTERS_META[named.id].sub}<br/>Label sistem: {named.label}<br/>Kemiripan {n(named.sim_top1,4)}<br/>Kedua: {named.label_top2}, {n(named.sim_top2,4)}<br/>Margin {n(named.margin,4)}</p>}<p className="af-warning">C9 campuran. C11 dinamai Mobile meski didominasi Player. Perlu tinjauan.</p></>}
     </div>
     {i===4&&<KCurves/>}
     {i===7&&<div className="af-bootstrap"><p className="af-metric">{n(analytics.bootstrap.summary.ensemble.mean,4)}<span>Rata-rata ARI konsensus</span></p><svg viewBox="0 0 800 220" role="img" aria-label="50 replikasi bootstrap asli, sumbu ARI 0 sampai 1"><text x={0} y={20}>1</text><text x={0} y={190}>0</text>{analytics.bootstrap.rows.map((row,j)=><rect key={row.bootstrap} x={30+j*15} y={190-row.ARI_ensemble*170} width={9} height={row.ARI_ensemble*170} className="af-accent-fill"><title>Bootstrap {row.bootstrap}: ARI {n(row.ARI_ensemble,4)}</title></rect>)}</svg><p className="af-caption">CLIP, UMAP, dan pemilihan K tidak diulang. SD {n(analytics.bootstrap.summary.ensemble.stdSample,4)}. Bukan interval keyakinan akurasi.</p></div>}

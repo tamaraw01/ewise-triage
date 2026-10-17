@@ -11,7 +11,14 @@ const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.Modu
 const dashboard = new Module(filename, module);
 dashboard.filename = filename;
 dashboard.paths = Module._nodeModulePaths(path.dirname(filename));
-dashboard._compile(compiled, filename);
+const dataFile = path.resolve(__dirname, '../lib/data.ts');
+const dataModule = new Module(dataFile, module);
+dataModule.filename = dataFile;
+dataModule.paths = Module._nodeModulePaths(path.dirname(dataFile));
+dataModule._compile(ts.transpileModule(fs.readFileSync(dataFile, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, dataFile);
+const originalRequire = dashboard.require.bind(dashboard);
+dashboard.require = id => id === '../lib/data' ? dataModule.exports : originalRequire(id);
+dashboard._compile(compiled, filename); const { CLUSTERS_META } = dataModule.exports;
 const { descriptive, dominant, orderedClusters, clusterCSV, exactPurity, metricValue } = dashboard.exports;
 const clusters = require('../data/clusters.json');
 const analytics = require('../data/analytics.json');
@@ -59,10 +66,9 @@ test('metric sorting and CSV retain every cluster without changing input', () =>
 test('display names distinguish all clusters without overwriting system labels', () => {
   const { clusterName } = dashboard.exports;
   assert.equal(new Set(clusters.map(clusterName)).size, 14);
-  assert.equal(clusterName(clusters.find(c => c.id === 9)), 'Campuran');
-  assert.equal(clusterName(clusters.find(c => c.id === 11)), 'Player');
+  for (const c of clusters) assert.equal(clusterName(c), CLUSTERS_META[c.id].sub);
   assert.equal(clusters.find(c => c.id === 11).label, 'Mobile');
-  assert.match(clusterCSV(clusters), /"11","Player","Mobile","243"/);
+  assert.match(clusterCSV(clusters), /"11","Pemutar audio \(kelas acuan: Player\)","Mobile","243"/);
   assert.match(source, /\{clusterName\(c\)\}/);
 });
 

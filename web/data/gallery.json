@@ -1,0 +1,167 @@
+{
+  "population": 2660,
+  "sourceSha256": "f1295674cb23420ab8f1b27fe1c6afb0a2e3d6c5c2d773a7ab18a044e5981214",
+  "manifestSha256": "f827f3ce45531fccd64126cbe265f532464c77b688d7e620dec110c5441f4528",
+  "dataset": "https://www.kaggle.com/datasets/samuelfrans/bdc2026-dataset",
+  "license": "CC0: Public Domain",
+  "selection": "filename-label-stratified; one per label then proportional deficit; SHA256 filename ordering; at most 12 per cluster",
+  "clusters": [
+    {
+      "id": 0,
+      "count": 277,
+      "systemLabel": "Keyboard",
+      "mix": {
+        "Battery": 6,
+        "Keyboard": 249,
+        "Microwave": 6,
+        "Player": 7,
+        "Printer": 5,
+        "Television": 1,
+        "Washing Machine": 3
+      },
+      "sampleCount": 12
+    },
+    {
+      "id": 1,
+      "count": 286,
+      "systemLabel": "Mobile",
+      "mix": {
+        "Keyboard": 1,
+        "Mobile": 284,
+        "Television": 1
+      },
+      "sampleCount": 12
+    },
+    {
+      "id": 2,
+      "count": 202,
+      "systemLabel": "Washing Machine",
+      "mix": {
+        "Microwave": 1,
+        "Washing Machine": 201
+      },
+      "sampleCount": 12
+    },
+    {
+      "id": 3,
+      "count": 232,
+      "systemLabel": "PCB",
+      "mix": {
+        "Battery": 1,
+        "Microwave": 2,
+        "PCB": 227,
+        "Player": 1,
+        "Printer": 1
+      },
+      "sampleCount": 12
+    },
+    {
+      "id": 4,
+      "count": 132,
+      "systemLabel": "Battery",
+      "mix": {
+        "Battery": 132
+      },
+      "sampleCount": 12
+    },
+    {
+      "id": 5,
+      "count": 93,
+      "systemLabel": "Washing Machine",
+      "mix": {
+        "Washing Machine": 93
+      },
+      "sampleCount": 12
+    },
+    {
+      "id": 6,
+      "count": 237,
+      "systemLabel": "Microwave",
+      "mix": {
+        "Microwave": 235,
+        "Television": 2
+      },
+      "sampleCount": 12
+    },
+    {
+      "id": 7,
+      "count": 266,
+      "systemLabel": "Mouse",
+      "mix": {
+        "Mouse": 261,
+        "Player": 5
+      },
+      "sampleCount": 12
+    },
+    {
+      "id": 8,
+      "count": 133,
+      "systemLabel": "Television",
+      "mix": {
+        "Microwave": 1,
+        "Player": 1,
+        "Television": 131
+      },
+      "sampleCount": 12
+    },
+    {
+      "id": 9,
+      "count": 31,
+      "systemLabel": "Mobile",
+      "mix": {
+        "Battery": 1,
+        "Keyboard": 8,
+        "Microwave": 3,
+        "Mobile": 7,
+        "Mouse": 4,
+        "PCB": 3,
+        "Printer": 1,
+        "Television": 2,
+        "Washing Machine": 2
+      },
+      "sampleCount": 12
+    },
+    {
+      "id": 10,
+      "count": 80,
+      "systemLabel": "Battery",
+      "mix": {
+        "Battery": 80
+      },
+      "sampleCount": 12
+    },
+    {
+      "id": 11,
+      "count": 243,
+      "systemLabel": "Mobile",
+      "mix": {
+        "Microwave": 1,
+        "Player": 242
+      },
+      "sampleCount": 12
+    },
+    {
+      "id": 12,
+      "count": 174,
+      "systemLabel": "Television",
+      "mix": {
+        "Microwave": 9,
+        "Player": 1,
+        "Television": 163,
+        "Washing Machine": 1
+      },
+      "sampleCount": 12
+    },
+    {
+      "id": 13,
+      "count": 274,
+      "systemLabel": "Printer",
+      "mix": {
+        "Microwave": 1,
+        "Player": 1,
+        "Printer": 272
+      },
+      "sampleCount": 12
+    }
+  ]
+}

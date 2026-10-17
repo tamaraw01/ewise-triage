@@ -9,6 +9,7 @@ import TriagePanel from "@/components/TriagePanel";
 import ResearchDashboard from "@/components/ResearchDashboard";
 import AnalysisFlow from "@/components/AnalysisFlow";
 import ExplorationTools, { researchClusters } from "@/components/ExplorationTools";
+import ClusterGallery from "@/components/ClusterGallery";
 const ClusterField = dynamic(() => import("@/components/ClusterField"), {
   ssr: false,
   loading: () => <div className="field-loading" role="status">Memuat peta klaster…</div>,
@@ -26,6 +27,15 @@ gsap.config({ nullTargetWarn: false }); // panels share one timeline; absent tar
 export default function Page() {
   const [section, setSection] = useState<Section>("Konsol");
   const [explorerOpened, setExplorerOpened] = useState(false);
+  const [selected, setSelected] = useState(0);
+  const explore = (id: number) => {
+    if (!clusters.some(cluster => cluster.id === id)) return `Kelompok C${id} tidak ada di referensi.`;
+    setSelected(id);
+    setExplorerOpened(true);
+    setSection("Cluster Explorer");
+    requestAnimationFrame(() => document.getElementById("tab-1")?.focus());
+    return "";
+  };
   const stage = useRef<HTMLDivElement>(null);
   useGSAP(() => {
     const motion = gsap.matchMedia();
@@ -53,8 +63,8 @@ export default function Page() {
         }}>{name}</button>)}
       </nav>
       <div ref={stage} className="dashboard-stage">
-        <div id="panel-0" role="tabpanel" aria-labelledby="tab-0" hidden={section !== "Konsol"}><TriagePanel active={section === "Konsol"} /></div>
-        <div id="panel-1" role="tabpanel" aria-labelledby="tab-1" hidden={section !== "Cluster Explorer"}>{explorerOpened && <Explorer />}</div>
+        <div id="panel-0" role="tabpanel" aria-labelledby="tab-0" hidden={section !== "Konsol"}><TriagePanel active={section === "Konsol"} onExplore={explore} /></div>
+        <div id="panel-1" role="tabpanel" aria-labelledby="tab-1" hidden={section !== "Cluster Explorer"}>{explorerOpened && <Explorer selected={selected} onSelect={setSelected} />}</div>
         <div id="panel-2" role="tabpanel" aria-labelledby="tab-2" hidden={section !== "Statistik"}>{section === "Statistik" && <ResearchDashboard />}</div>
         <div id="panel-3" role="tabpanel" aria-labelledby="tab-3" hidden={section !== "Proses"}>{section === "Proses" && <AnalysisFlow />}</div>
       </div>
@@ -63,8 +73,7 @@ export default function Page() {
   );
 }
 
-function Explorer() {
-  const [selected, setSelected] = useState(0);
+function Explorer({ selected, onSelect: setSelected }: { selected: number; onSelect: (id: number) => void }) {
   const dossier = useRef<HTMLElement>(null);
   useGSAP(() => {
     const motion = gsap.matchMedia();
@@ -73,11 +82,12 @@ function Explorer() {
     });
     return () => motion.revert();
   }, { scope: dossier, dependencies: [selected], revertOnUpdate: true });
-  const c = clusters.find(cluster => cluster.id === selected)!;
+  const c = clusters.find(cluster => cluster.id === selected);
+  if (!c) return <p role="alert">Kelompok C{selected} tidak ada di referensi.</p>;
   const contested = c.lane === "MR";
   return (
     <section aria-labelledby="cluster-title" className="explorer-workspace">
-      <div className="workspace-heading"><h2 id="cluster-title">Referensi perangkat</h2><p>{meta.dataset_images_used.toLocaleString("id-ID")} citra · {clusters.length} klaster</p></div>
+      <div className="workspace-heading"><h2 id="cluster-title">Referensi perangkat</h2><p>{meta.dataset_images_used.toLocaleString("id-ID")} citra referensi · {clusters.length} kelompok</p></div>
       <div className="explorer">
         <figure className="cluster-atlas">
           <div className="panel-h"><h3>Peta sebaran</h3><span className="spec num">{scatter.length.toLocaleString("id-ID")} sampel · 2D</span></div>
@@ -85,15 +95,17 @@ function Explorer() {
           <div className="atlas-controls" aria-label="Pilih klaster pada peta">
             {clusters.map(x => <button key={x.id} className="cluster-key num" type="button" aria-pressed={selected === x.id} onClick={() => setSelected(x.id)}>C{x.id}</button>)}
           </div>
-          <figcaption>Pilih klaster untuk melihat panduan penanganan.</figcaption>
+          <figcaption>Pilih kelompok untuk melihat contoh dan acuan pemeriksaan.</figcaption>
         </figure>
         <article ref={dossier} className="cluster-dossier" aria-live="polite">
           <div className="dossier-title"><span className="dossier-id num">C{c.id}</span><div><h3>{c.sub}</h3><span className={`spec${c.lane === "P1" ? " is-hazard" : ""}`}>{c.lane} · {LANES[c.lane].desc}</span></div></div>
           {contested && <p className="caveat"><strong>Perlu pemeriksaan petugas. </strong>{c.id === 9 ? "C9 campuran; kelas dominan Keyboard hanya 25,8%." : "C11 dinamai Mobile, tetapi kelas dominan Player mencapai 99,6%."} Wajib peninjauan manual.</p>}
           <dl className="facts">
-            <div><dt>Foto referensi</dt><dd className="num">{c.n}</dd></div>
-            <div><dt>Kelas dominan / kemurnian</dt><dd>{c.dom} / <span className="num">{c.pur.toLocaleString("id-ID", { maximumFractionDigits: 1 })}%</span></dd></div>
+            <div><dt>Jumlah citra referensi</dt><dd className="num">{c.n}</dd></div>
+            <div><dt>Kelas dominan / kemurnian kelompok</dt><dd>{c.dom} / <span className="num">{c.pur.toLocaleString("id-ID", { maximumFractionDigits: 1 })}%</span></dd></div>
           </dl>
+          <p className="dossier-note">Kemurnian dihitung pada citra referensi, bukan akurasi untuk foto baru.</p>
+          <ClusterGallery selected={selected} />
           <details className="dossier-detail"><summary>Detail label</summary><dl className="facts"><div><dt>Label sistem</dt><dd>{c.name}</dd></div><div><dt>Skor kecocokan label</dt><dd className="num">{fixed4(c.sim)}</dd></div><div><dt>Selisih skor label</dt><dd className="num">{fixed4(c.zs)}</dd></div></dl><p className="dossier-note">Selisih skor dua label teratas. Bukan skor kecocokan foto yang diunggah.</p></details>
           {c.hazard && <p className="hazard-note">Perhatian: {c.hazard}.</p>}
           <div className="dossier-action"><h4>Penanganan oleh petugas terlatih</h4><p>{c.action} Ikuti SOP fasilitas setelah pemeriksaan fisik.</p></div>

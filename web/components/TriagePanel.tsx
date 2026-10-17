@@ -35,7 +35,10 @@ type Prediction = {
   disclaimer: string;
 };
 
-export default function TriagePanel({ active = true }: { active?: boolean }) {
+// Returns "" after navigation, or an explicit error when the reference group is absent.
+export type ExploreHandler = (clusterId: number) => string;
+
+export default function TriagePanel({ active = true, onExplore }: { active?: boolean; onExplore?: ExploreHandler }) {
   const [phase, setPhase] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
@@ -269,7 +272,7 @@ export default function TriagePanel({ active = true }: { active?: boolean }) {
           )}
         </div>
       </section>}
-      {phase === "done" && result && <ResultCard data={result} onReset={reset} />}
+      {phase === "done" && result && <ResultCard data={result} onReset={reset} onExplore={onExplore} />}
     </div>
   );
 }
@@ -292,8 +295,9 @@ function LaneLegend() {
   );
 }
 
-function ResultCard({ data, onReset }: { data: Prediction; onReset: () => void }) {
+function ResultCard({ data, onReset, onExplore }: { data: Prediction; onReset: () => void; onExplore?: ExploreHandler }) {
   const evidenceRef = useRef<HTMLDivElement>(null);
+  const [exploreError, setExploreError] = useState("");
   useGSAP(() => {
     const media = gsap.matchMedia();
     media.add("(prefers-reduced-motion: no-preference)", () => {
@@ -322,26 +326,39 @@ function ResultCard({ data, onReset }: { data: Prediction; onReset: () => void }
     .sort((a, b) => b.similarity - a.similarity)
     .slice(0, 5);
   const zsEntries = (data.zero_shot ?? []).slice(0, 3);
+  const explore = () => {
+    if (!onExplore) return setExploreError("Kelompok pembanding tidak tersedia.");
+    setExploreError(onExplore(data.cluster.id));
+  };
 
   return (
     <>
       <section className="inspection-verdict" aria-labelledby="result-device">
-        <div className={`ticket-lane${hazard ? " is-hazard" : ""}${auto ? "" : " is-manual"}`}>
-          <span className="num lane-code">{lane.code}</span>
-          <span><b>{lane.name}</b><small>{lane.desc}</small></span>
-        </div>
         <div className="inspection-decision">
-          <StatusPill auto={auto} text={auto ? "Jalur otomatis, tetap periksa fisik" : "Peninjauan manual"} />
-          <div className="ticket-id">
-            <span className="num chip">C{data.cluster.id}</span>
-            <h3 id="result-device">{auto ? cMeta.name : "Periksa barang secara manual"}</h3>
+          <div className="result-group">
+            <h4 className="label">Kelompok</h4>
+            <div className="ticket-id">
+              <span className="num chip">C{data.cluster.id}</span>
+              <h3 id="result-device">{cMeta?.sub ?? candidateLabel(data) ?? "Kelompok belum pasti"}</h3>
+            </div>
+            <p className="ticket-sub">{auto ? cMeta.sub : `Kandidat terdekat: C${data.cluster.id} (${candidateLabel(data) ?? "tidak tersedia"})`}</p>
           </div>
-          <p className="ticket-sub">{auto ? cMeta.sub : `Kandidat terdekat: C${data.cluster.id} (${candidateLabel(data) ?? "tidak tersedia"})`}</p>
+          <div className="result-evidence">
+            <h4 className="label">Bukti</h4>
+            <p><span className="num">{fixed4(data.margin)}</span> margin, {data.margin >= data.threshold ? "di atas" : "di bawah"} ambang <span className="num">{fixed4(data.threshold)}</span>. Skor kemiripan, bukan probabilitas.</p>
+            <button type="button" className="btn" onClick={explore}>Lihat kelompok pembanding</button>
+            {exploreError && <p className="inline-note" role="alert">{exploreError}</p>}
+          </div>
           <div className="inspection-handling">
-            <h4 className="label">Penanganan oleh petugas terlatih</h4>
+            <h4 className="label">Status pemeriksaan</h4>
+            <StatusPill auto={auto} text={auto ? "Saran kelompok tersedia. Konfirmasi kondisi fisik." : "Periksa barang secara manual."} />
             {auto && cMeta.hazard && <div className="hazard-note"><IconWarn /><span>{cMeta.hazard}</span></div>}
             <p>{auto ? `${cMeta.action} Ikuti SOP fasilitas setelah pemeriksaan fisik.` : reason}</p>
           </div>
+          <details className="result-reference">
+            <summary>Acuan penanganan · <span className="num">{lane.code}</span></summary>
+            <p className={hazard ? "hazard-note" : "dim"}>{lane.name}. {lane.desc}</p>
+          </details>
           <button type="button" className="btn btn-primary btn-block" onClick={onReset}>Triase barang berikutnya</button>
         </div>
       </section>
@@ -365,7 +382,7 @@ function ResultCard({ data, onReset }: { data: Prediction; onReset: () => void }
                   const score = Math.max(-1, Math.min(1, candidate.similarity));
                   return (
                     <li key={`${candidate.cluster}-${i}`}>
-                      <div className="candidate-row"><span><span className="num">C{candidate.cluster}</span> {candidate.label ?? "Nama tidak tersedia"}</span><span className="num">{fixed4(candidate.similarity)}</span></div>
+                      <div className="candidate-row"><span><span className="num">C{candidate.cluster}</span> {CLUSTERS_META[candidate.cluster]?.sub ?? candidate.label ?? "Nama tidak tersedia"}</span><span className="num">{fixed4(candidate.similarity)}</span></div>
                       <div className="signed-bar" aria-hidden="true"><i style={{ left: `${score < 0 ? 50 + score * 50 : 50}%`, width: `${Math.abs(score) * 50}%` }} /></div>
                     </li>
                   );
