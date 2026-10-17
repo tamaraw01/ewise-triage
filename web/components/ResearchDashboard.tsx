@@ -9,6 +9,8 @@ import analytics from "../data/analytics.json";
 
 type Cluster = (typeof clusters)[number];
 type Metric = "n_images" | "purity" | "margin";
+// Display names distinguish groups; raw zero-shot labels stay intact for evaluation.
+export const clusterName = (c: Cluster) => c.id === 9 ? "Campuran" : c.id === 11 ? "Player" : `${c.label}${({ 2: " I", 5: " II", 4: " I", 10: " II", 8: " I", 12: " II" } as Record<number, string>)[c.id] ?? ""}`;
 const number = (n: number, digits = 0) => n.toLocaleString("id-ID", { maximumFractionDigits: digits });
 const percent = (n: number) => `${(n * 100).toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 const cross = analytics.clusterAudit.crossTab;
@@ -26,7 +28,7 @@ export function descriptive(rows: Cluster[]) {
 export const orderedClusters = (metric: Metric, ascending: boolean) => [...clusters].sort((a, b) => (metricValue(a, metric) - metricValue(b, metric)) * (ascending ? 1 : -1) || a.id - b.id);
 export function clusterCSV(rows: Cluster[]) {
   const cell = (value: string | number) => `"${String(value).replaceAll('"', '""')}"`;
-  return ["cluster,system_label,n_images,dominant_class,dominant_count,purity_exact,naming_margin,runner_up", ...rows.map(c => [c.id, c.label, c.n_images, ...dominant(c), dominant(c)[1] / c.n_images, c.margin, c.label_top2].map(cell).join(","))].join("\r\n");
+  return ["cluster,display_name,system_label,n_images,dominant_class,dominant_count,purity_exact,naming_margin,runner_up", ...rows.map(c => [c.id, clusterName(c), c.label, c.n_images, ...dominant(c), dominant(c)[1] / c.n_images, c.margin, c.label_top2].map(cell).join(","))].join("\r\n");
 }
 
 const methods = ["ensemble", "kmeans", "ward", "gmm"] as const;
@@ -101,12 +103,12 @@ export default function ResearchDashboard() {
       <div className="research-section-heading"><h3 id="distribution-title">Klaster</h3>
         <div className="research-controls"><label htmlFor="research-metric" className="sr-only">Ukuran grafik</label><select id="research-metric" value={metric} onChange={e => setMetric(e.target.value as Metric)}><option value="n_images">Jumlah citra</option><option value="purity">Kemurnian</option><option value="margin">Margin penamaan</option></select><button type="button" className="btn" onClick={() => setAscending(!ascending)}>{ascending ? "Terkecil dahulu" : "Terbesar dahulu"}</button><button type="button" className="btn" onClick={download}>Unduh CSV</button></div></div>
       <div className="research-grid research-grid-wide">
-        <ol className="research-bars research-cluster-bars" aria-label="Nilai per klaster">{rows.map(c => <li key={c.id}><span><span className="num">C{c.id}</span> {c.label}</span><Bar value={metricValue(c, metric)} max={ceiling} tone={flagged(c.id) ? "var(--amber)" : "var(--green)"} /><span className="num">{show(c)}{flagged(c.id) && <span className="research-review">{flagged(c.id)}</span>}</span></li>)}</ol>
+        <ol className="research-bars research-cluster-bars" aria-label="Nilai per klaster">{rows.map(c => <li key={c.id}><span><span className="num">C{c.id}</span> {clusterName(c)}</span><Bar value={metricValue(c, metric)} max={ceiling} tone={flagged(c.id) ? "var(--amber)" : "var(--green)"} /><span className="num">{show(c)}{flagged(c.id) && <span className="research-review">{flagged(c.id)}</span>}</span></li>)}</ol>
         <dl className="research-facts">{[["Rata-rata", number(stats.mean, 2)], ["Median", number(stats.median, 1)], ["Terkecil", number(stats.min)], ["Terbesar", number(stats.max)], ["Simpangan baku", number(stats.sd, 2)]].map(([k, v]) => <div key={k}><dt>{k}</dt><dd className="num">{v}</dd></div>)}<p className="research-note">Citra per klaster.</p></dl>
       </div>
-      <p className="research-note">Margin penamaan adalah selisih skor kemiripan dua label teratas, bukan probabilitas.</p>
+      <p className="research-note">Margin penamaan adalah selisih skor kemiripan dua label teratas, bukan probabilitas. I dan II membedakan klaster dengan kelas sama, bukan tipe perangkat. Nama sistem asli tetap tersedia pada tabel dan CSV.</p>
       <div className="research-flags">{[9, 11].map(id => { const c = clusters.find(k => k.id === id)!; const [name, n] = dominant(c); return <p key={id}><strong>C{id} {flagged(id).toLowerCase()}.</strong> Dinamai {c.label}, isinya {n} {name} dari {c.n_images} citra.</p>; })}</div>
-      <details><summary>Tabel klaster</summary><div className="research-table-scroll" tabIndex={0} role="region" aria-label="Tabel klaster"><table><thead><tr><th scope="col">Klaster</th><th scope="col">Nama sistem</th><th scope="col">Citra</th><th scope="col">Kelas dominan</th><th scope="col">Kemurnian</th><th scope="col">Label kedua</th><th scope="col">Margin</th></tr></thead><tbody>{rows.map(c => { const [name, count] = dominant(c); return <tr key={c.id}><th scope="row" className="num">C{c.id}</th><td>{c.label}</td><td className="num">{c.n_images}</td><td>{name} <span className="num">{count}</span></td><td className="num">{percent(count / c.n_images)}</td><td>{c.label_top2}</td><td className="num">{number(c.margin, 4)}</td></tr>; })}</tbody></table></div></details>
+      <details><summary>Tabel klaster</summary><div className="research-table-scroll" tabIndex={0} role="region" aria-label="Tabel klaster"><table><thead><tr><th scope="col">Klaster</th><th scope="col">Nama klaster</th><th scope="col">Nama sistem</th><th scope="col">Citra</th><th scope="col">Kelas dominan</th><th scope="col">Kemurnian</th><th scope="col">Label kedua</th><th scope="col">Margin</th></tr></thead><tbody>{rows.map(c => { const [name, count] = dominant(c); return <tr key={c.id}><th scope="row" className="num">C{c.id}</th><td>{clusterName(c)}</td><td>{c.label}</td><td className="num">{c.n_images}</td><td>{name} <span className="num">{count}</span></td><td className="num">{percent(count / c.n_images)}</td><td>{c.label_top2}</td><td className="num">{number(c.margin, 4)}</td></tr>; })}</tbody></table></div></details>
       <details><summary>Isi kelas per klaster</summary><Heatmap label="Jumlah citra per klaster dan kelas" rows={cross.rowClusterIds.map(id => `C${id}`)} cols={cross.columnLabels} values={cross.values} diagonal={false} /></details>
     </section>
 

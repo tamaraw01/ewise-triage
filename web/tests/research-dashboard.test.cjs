@@ -56,6 +56,16 @@ test('metric sorting and CSV retain every cluster without changing input', () =>
   assert.deepEqual(clusters.map(c => c.id), original);
 });
 
+test('display names distinguish all clusters without overwriting system labels', () => {
+  const { clusterName } = dashboard.exports;
+  assert.equal(new Set(clusters.map(clusterName)).size, 14);
+  assert.equal(clusterName(clusters.find(c => c.id === 9)), 'Campuran');
+  assert.equal(clusterName(clusters.find(c => c.id === 11)), 'Player');
+  assert.equal(clusters.find(c => c.id === 11).label, 'Mobile');
+  assert.match(clusterCSV(clusters), /"11","Player","Mobile","243"/);
+  assert.match(source, /\{clusterName\(c\)\}/);
+});
+
 test('bootstrap card and plot both show mean ARI', () => {
   assert.match(source, /Rata-rata ARI Ensemble/);
   assert.match(source, /number\(s\.mean, 4\)/);
