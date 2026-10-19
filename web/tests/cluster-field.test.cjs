@@ -13,7 +13,7 @@ test("ClusterField stops hidden work and responds to live reduced motion", () =>
     addEventListener: (type, fn) => listeners.set(type, fn),
     removeEventListener: (type, fn) => { if (listeners.get(type) === fn) listeners.delete(type); },
   });
-  const el = { ...events(), clientWidth: 500, clientHeight: 320, prepend() {}, querySelector: () => null, querySelectorAll: () => [], getBoundingClientRect: () => ({ left: 0, top: 0, width: 500, height: 320 }) };
+  const el = { ...events(), clientWidth: 500, clientHeight: 320, prepend() {}, querySelector: () => null, querySelectorAll: () => [], setPointerCapture() {}, getBoundingClientRect: () => ({ left: 0, top: 0, width: 500, height: 320 }) };
   const motion = { ...events(), matches: false };
   const document = { ...events(), hidden: false, documentElement: {} };
   const frames = new Map(), effects = [], refs = [];
@@ -67,6 +67,13 @@ test("ClusterField stops hidden work and responds to live reduced motion", () =>
     assert.equal(frames.size, 0, "idle view must stop requesting frames");
   };
   flush();
+  const click = { button: 0, pointerId: 1, clientX: 250 + .5 / (7 * 1.18) * 320, clientY: 160 + .5 / (7 * 1.18) * 320, target: { closest: () => null } };
+  listeners.get("pointerdown")(click);
+  listeners.get("pointerup")(click);
+  assert.ok(tween, "overview point click must focus cluster, not open photo");
+  assert.equal(tween.to.x, 4);
+  assert.ok(tween.to.zoom > 1);
+  gsap.killTweensOf();
   const idleRenders = renders;
   for (let i = 0; i < 40; i++) listeners.get("wheel")({ preventDefault() {}, clientX: 250, clientY: 160, deltaY: -2, deltaMode: 0 });
   assert.equal(frames.size, 1, "gesture burst must coalesce into one scheduled frame");

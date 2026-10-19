@@ -174,7 +174,10 @@ export default function ClusterField({ selected, onSelect }: { selected: number;
       const p = local(e);
       let best = -1, distance = 22 ** 2;
       points.forEach((point, index) => { const s = project(point), d = (s.x - p.x) ** 2 + (s.y - p.y) ** 2; if (d < distance) { distance = d; best = index; } });
-      if (best >= 0) { openRef.current(best); }
+      if (best >= 0) {
+        if (view.zoom < 3) { setActive(null); callback.current(points[best].c); focus(points[best].c); }
+        else openRef.current(best);
+      }
     };
     const wheel = (e: WheelEvent) => { e.preventDefault(); const p = local(e); const delta = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? height : 1); zoomAt(Math.exp(-Math.max(-200, Math.min(200, delta)) * .003), p.x, p.y); };
     const key = (e: KeyboardEvent) => {
