@@ -5,7 +5,8 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
-import TriagePanel from "@/components/TriagePanel";
+import DemoWorkspace from "@/components/DemoWorkspace";
+import "./demo.css";
 import ResearchDashboard from "@/components/ResearchDashboard";
 import AnalysisFlow from "@/components/AnalysisFlow";
 import ExplorationTools, { researchClusters } from "@/components/ExplorationTools";
@@ -63,7 +64,7 @@ export default function Page() {
         }}>{name}</button>)}
       </nav>
       <div ref={stage} className="dashboard-stage">
-        <div id="panel-0" role="tabpanel" aria-labelledby="tab-0" hidden={section !== "Konsol"}><TriagePanel active={section === "Konsol"} onExplore={explore} /></div>
+        <div id="panel-0" role="tabpanel" aria-labelledby="tab-0" hidden={section !== "Konsol"}><DemoWorkspace active={section === "Konsol"} onExplore={explore} /></div>
         <div id="panel-1" role="tabpanel" aria-labelledby="tab-1" hidden={section !== "Cluster Explorer"}>{explorerOpened && <Explorer selected={selected} onSelect={setSelected} />}</div>
         <div id="panel-2" role="tabpanel" aria-labelledby="tab-2" hidden={section !== "Statistik"}>{section === "Statistik" && <ResearchDashboard />}</div>
         <div id="panel-3" role="tabpanel" aria-labelledby="tab-3" hidden={section !== "Proses"}>{section === "Proses" && <AnalysisFlow />}</div>

@@ -15,6 +15,44 @@ test('manual decisions require a note, preserve model evidence, and can be rever
  assert.equal(original.review,undefined);
  assert.equal(session.summarize([{...reviewed,review:undefined}]).unresolved,1);
 });
+test('prediction keeps complete detached immutable JSON evidence', () => {
+ const source = {...prediction(), model_version:'model-7', top_similarity:.8, runner_up:{id:2,label:null}, zero_shot:[{label:'Battery',similarity:.4}], disclaimer:'Research', extra:{flags:[true,null,3]}};
+ source.cluster.purity = .9;
+ const parsed = session.parsePrediction(source);
+ assert.deepEqual(parsed, source);
+ assert.notEqual(parsed, source);
+ source.extra.flags[0] = false;
+ assert.equal(parsed.extra.flags[0], true);
+ assert.ok(Object.isFrozen(parsed.extra.flags));
+});
+test('prediction rejects unsafe or unbounded JSON evidence', () => {
+ const cycle = {}; cycle.self = cycle;
+ let deep = null; for (let i=0;i<18;i++) deep = {child:deep};
+ const accessor = {}; Object.defineProperty(accessor, 'secret', {enumerable:true,get(){throw Error('getter must not run');}});
+ for (const extra of [undefined, NaN, Infinity, 1n, ()=>{}, new Date(), cycle, deep, accessor, JSON.parse('{"__proto__":{"polluted":true}}'), Array(1001).fill(0), 'x'.repeat(session.MAX_PREDICTION_BYTES)]) {
+  assert.throws(() => session.parsePrediction({...prediction(), extra}), /Respons backend tidak valid/);
+ }
+ assert.equal({}.polluted, undefined);
+});
+test('API proxy, client parser, record and reload retain complete backend evidence', async t => {
+ const fs = require('node:fs');
+ const filename = require('node:path').resolve(__dirname, '../app/api/predict/route.ts');
+ const output = ts.transpileModule(fs.readFileSync(filename,'utf8'), {compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText;
+ const loaded = {exports:{}};
+ new Function('require','module','exports', output)(name => name === 'next/server' ? {NextResponse:{json: (body, init) => Response.json(body,init)}} : session, loaded, loaded.exports);
+ const source = {...prediction(), model_version:'release-8', top_similarity:.81, runner_up:{id:2,label:null}, zero_shot:[{label:'Battery',similarity:.3}], disclaimer:'Research', cluster:{...prediction().cluster,n_images:42,purity:.98}, nested:{new_evidence:[false,null]}};
+ const originalFetch = globalThis.fetch;
+ t.after(() => { globalThis.fetch = originalFetch; });
+ globalThis.fetch = async url => url.endsWith('/predict') ? Response.json({event_id:'test-event'}) : new Response('event: complete\ndata: '+JSON.stringify([source])+'\n\n');
+ const request = new Request('http://localhost/api/predict', {method:'POST',body:JSON.stringify({data:[{url:'data:image/jpeg;base64,/9j/'}]})});
+ const response = await loaded.exports.POST(request);
+ assert.equal(response.status,200);
+ const client = session.parsePrediction(await response.json());
+ assert.deepEqual(client,source);
+ const domain = require('../lib/demo-records.ts');
+ const record = domain.createRecord(client,'a.jpg');
+ assert.deepEqual(domain.parseStore(JSON.stringify({version:1,records:[record]})).records[0].inference,source);
+});
 test('upload validation rejects empty, oversized and unsupported files', () => {
  assert.equal(session.validateFile({size:1,type:'image/png'}),'');
  for(const file of [{size:0,type:'image/png'},{size:session.MAX_FILE_BYTES+1,type:'image/jpeg'},{size:5,type:'image/svg+xml'}]) assert.ok(session.validateFile(file));

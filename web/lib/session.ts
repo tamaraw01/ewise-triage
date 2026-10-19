@@ -16,8 +16,33 @@ export function validateFile(file: Pick<File, 'size' | 'type'>): string {
   if (file.size > MAX_FILE_BYTES) return 'Ukuran melebihi 3 MB. Perkecil citra lalu pilih ulang.';
   return '';
 }
+export const MAX_PREDICTION_BYTES = 131_072;
+function invalidPrediction(): never { throw new Error('Respons backend tidak valid. Coba ulang berkas ini.'); }
+function copyPrediction(value: unknown): unknown {
+  let nodes = 0;
+  const copy = (value: unknown, depth: number): unknown => {
+    if (++nodes > 10_000 || depth > 16) invalidPrediction();
+    if (value === null || typeof value === 'boolean' || typeof value === 'string') return value;
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (!value || typeof value !== 'object') invalidPrediction();
+    const array = Array.isArray(value);
+    if (array ? value.length > 1000 : ![Object.prototype, null].includes(Object.getPrototypeOf(value))) invalidPrediction();
+    const entries = Reflect.ownKeys(value).filter(key => !(array && key === 'length')).map(key => {
+      const descriptor = Object.getOwnPropertyDescriptor(value, key)!;
+      if (typeof key !== 'string' || ['__proto__', 'prototype', 'constructor'].includes(key) ||
+          !descriptor.enumerable || !Object.hasOwn(descriptor, 'value') ||
+          (array && (!/^(0|[1-9]\d*)$/.test(key) || Number(key) >= value.length))) invalidPrediction();
+      return [key, copy(descriptor.value, depth + 1)] as const;
+    });
+    if (array && entries.length !== value.length) invalidPrediction();
+    return Object.freeze(array ? entries.map(entry => entry[1]) : Object.fromEntries(entries));
+  };
+  const result = copy(value, 0);
+  if (new TextEncoder().encode(JSON.stringify(result)).byteLength > MAX_PREDICTION_BYTES) invalidPrediction();
+  return result;
+}
 export function parsePrediction(value: unknown): Prediction {
-  const p = value as Prediction | null;
+  const p = copyPrediction(value) as Prediction | null;
   if (!p || !['classified', 'review'].includes(p.status) || !Number.isFinite(p.margin) || !Number.isFinite(p.threshold) ||
       !p.cluster || !Number.isInteger(p.cluster.id) || typeof p.cluster.contested !== 'boolean' ||
       !(p.cluster.label === null || typeof p.cluster.label === 'string') ||

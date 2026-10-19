@@ -68,7 +68,7 @@ test('display names distinguish all clusters without overwriting system labels',
   assert.equal(new Set(clusters.map(clusterName)).size, 14);
   for (const c of clusters) assert.equal(clusterName(c), CLUSTERS_META[c.id].sub);
   assert.equal(clusters.find(c => c.id === 11).label, 'Mobile');
-  assert.match(clusterCSV(clusters), /"11","Pemutar audio \(kelas acuan: Player\)","Mobile","243"/);
+  assert.match(clusterCSV(clusters), /"11","Pemutar audio \(kelas Player\)","Mobile","243"/);
   assert.match(source, /\{clusterName\(c\)\}/);
 });
 

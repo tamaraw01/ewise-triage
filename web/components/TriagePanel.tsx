@@ -38,7 +38,11 @@ type Prediction = {
 // Returns "" after navigation, or an explicit error when the reference group is absent.
 export type ExploreHandler = (clusterId: number) => string;
 
-export default function TriagePanel({ active = true, onExplore }: { active?: boolean; onExplore?: ExploreHandler }) {
+export default function TriagePanel({ active = true, onExplore, onSave }: { active?: boolean; onExplore?: ExploreHandler; onSave?: (result: Prediction, fileName: string) => Promise<string> }) {
+  const [saved, setSaved] = useState(false);
+  const saving = useRef(false);
+  const saveGeneration = useRef(0);
+  const [saveError, setSaveError] = useState("");
   const [phase, setPhase] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
@@ -97,8 +101,11 @@ export default function TriagePanel({ active = true, onExplore }: { active?: boo
   }, [cameraActive]);
 
   const reset = useCallback(() => {
+    saveGeneration.current++;
     request.current?.abort();
     setPhase("idle");
+    setSaved(false);
+    setSaveError("");
     setResult(null);
     setError("");
     setPreviewUrl("");
@@ -273,6 +280,23 @@ export default function TriagePanel({ active = true, onExplore }: { active?: boo
         </div>
       </section>}
       {phase === "done" && result && <ResultCard data={result} onReset={reset} onExplore={onExplore} />}
+      {phase === "done" && result && onSave && <div className="demo-save">
+        <button type="button" className="btn btn-primary" disabled={saved} onClick={async () => {
+          if (saving.current) return;
+          saving.current = true;
+          const generation = saveGeneration.current;
+          try {
+            const message = await onSave(result, file?.name ?? "Foto barang");
+            if (generation !== saveGeneration.current) return;
+            setSaveError(message);
+            if (!message) setSaved(true);
+          } catch {
+            if (generation === saveGeneration.current) setSaveError("Barang belum tersimpan. Coba lagi.");
+          } finally { saving.current = false; }
+        }}>{saved ? "Barang sudah dicatat" : "Catat barang ini"}</button>
+        <p role="status">{saved ? "Tersimpan di browser ini. Lanjutkan pemeriksaan di catatan demo." : "Satu hasil menjadi satu barang. Foto tidak disimpan dalam catatan."}</p>
+        {saveError && <p role="alert">{saveError}</p>}
+      </div>}
     </div>
   );
 }

@@ -97,12 +97,28 @@ test('Result order: group, evidence/action, inspection, handling reference; haza
   }
 });
 
+test('Storage notice stays below workspace with optional details and brief loading copy', () => {
+  const tree = harness('components/DemoWorkspace.tsx').render({ active: true });
+  const all = nodes(tree);
+  const footer = all.find(n => n.type === 'footer');
+  assert.equal(footer.props.className, 'record-storage');
+  assert.match(text(footer), /Tersimpan di browser ini/);
+  const disclosure = nodes(footer).find(n => n.type === 'details');
+  assert.equal(disclosure.props.open, undefined);
+  assert.equal(text(nodes(disclosure).find(n => n.type === 'summary')), 'Tentang penyimpanan');
+  for (const copy of ['100 barang', 'tanpa foto', 'Ekspor catatan', 'identitas pengisi tidak diverifikasi', 'Bukan audit resmi', 'jam perangkat mundur']) assert.ok(text(disclosure).includes(copy));
+  assert.equal(text(all.find(n => n.props.role === 'status')), 'Memuat…');
+  assert.equal(all.some(n => n.props.className === 'demo-notice'), false);
+  const section = all.find(n => n.props.className === 'demo-records');
+  assert.equal(section.props.children.at(-1), footer);
+});
+
 test('Reference copy and gallery precede handling; console stays mounted', () => {
   const page = fs.readFileSync(path.join(__dirname, '../app/page.tsx'), 'utf8');
   assert.match(page, /Jumlah citra referensi/);
   assert.match(page, /Pilih kelompok untuk melihat contoh dan acuan pemeriksaan\./);
   assert.match(page, /bukan akurasi untuk foto baru/);
   assert.ok(page.indexOf('<ClusterGallery selected={selected}') < page.indexOf('className="dossier-action"'));
-  assert.match(page, /hidden=\{section !== "Konsol"\}><TriagePanel/);
+  assert.match(page, /hidden=\{section !== "Konsol"\}><DemoWorkspace/);
   assert.doesNotMatch(page, /location\.|href="#/);
 });

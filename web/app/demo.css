@@ -1,0 +1,49 @@
+.record-storage { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:4px 24px; margin-top:24px; border-top:1px solid var(--edge); padding-top:12px; font-size:13px; line-height:1.6; color:var(--bone-dim); }
+.record-storage details { flex:1; min-width:0; }
+.record-storage summary { width:fit-content; margin-left:auto; min-height:44px; padding:11px 0; cursor:pointer; color:var(--bone); }
+.record-storage-info { max-width:68ch; margin-left:auto; padding:4px 0 12px; }
+.record-storage-info p + p { margin-top:8px; }
+.record-loading { padding-top:16px; font-size:13px; color:var(--bone-dim); }
+.capture-disclosure { font-size:13px; line-height:1.6; }
+.demo-save { grid-column:2; display:grid; gap:10px; }
+.demo-save p { font-size:13px; line-height:1.6; color:var(--bone-dim); }
+.demo-records { margin-top:48px; border-top:1px solid var(--edge); padding-top:28px; }
+.record-heading { display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; }
+.record-heading h2 { font-size:28px; font-weight:600; letter-spacing:-.03em; }
+.record-actions { display:flex; gap:10px; flex-wrap:wrap; }
+.record-counts { display:flex; flex-wrap:wrap; gap:24px 48px; padding:24px 0; }
+.record-counts dt { color:var(--bone-dim); font-size:13px; }
+.record-counts dd { font-size:30px; font-variant-numeric:tabular-nums; }
+.record-filters { display:flex; flex-wrap:wrap; gap:16px; margin-bottom:24px; }
+.record-filters label,.record-form label { display:grid; gap:8px; font-size:14px; }
+.record-filters label:first-child { flex:1; min-width:0; }
+.demo-records input,.demo-records select,.demo-records textarea { font:inherit; min-height:44px; padding:10px 12px; border:1px solid var(--edge); background:var(--iron); color:var(--bone); width:100%; border-radius:0; }
+.demo-records textarea { resize:vertical; }
+.record-workbench { display:grid; grid-template-columns:minmax(220px,.7fr) minmax(0,1.5fr); gap:32px; align-items:start; }
+.record-list { display:grid; max-height:650px; overflow-y:auto; }
+.record-list button { display:grid; gap:6px; text-align:left; padding:18px 16px; background:none; border:1px solid transparent; border-bottom-color:var(--edge); color:var(--bone); min-height:44px; cursor:pointer; overflow-wrap:anywhere; }
+.record-list button[aria-pressed="true"] { background:var(--iron-hi); border-color:var(--green); }
+.record-list button:hover { background:var(--iron); }
+.record-list span,.record-list small { font-size:13px; color:var(--bone-dim); }
+.record-detail { min-width:0; overflow-wrap:anywhere; }
+.record-detail h3 { font-size:23px; font-weight:600; margin:8px 0; }
+.record-detail h4 { font-size:16px; font-weight:600; }
+.record-inference { background:var(--iron); padding:20px; margin:24px 0; display:grid; gap:12px; }
+.record-inference .btn { justify-self:start; }
+.record-form { display:grid; gap:18px; }
+.record-form .btn { justify-self:start; }
+.record-history { margin-top:32px; border-top:1px solid var(--edge); padding-top:24px; }
+.record-history ol { list-style:decimal; padding-left:22px; }
+.record-history li { margin-top:20px; padding-left:6px; }
+.record-history li span { display:block; color:var(--green); font-size:13px; margin:6px 0; }
+.record-history p { white-space:pre-wrap; }
+.record-history small { display:block; margin-top:8px; color:var(--bone-dim); }
+.record-history details { margin-top:24px; }
+.record-history summary { cursor:pointer; min-height:44px; display:flex; align-items:center; }
+.record-history pre { font-size:12px; max-height:320px; overflow:auto; padding:16px; background:var(--iron); }
+.record-empty { padding:32px 0; color:var(--bone-dim); line-height:1.7; }
+.record-empty h3 { color:var(--bone); font-size:20px; }
+.record-error,.record-confirm { padding:20px; border:1px solid var(--amber); margin:20px 0; line-height:1.6; }
+.record-confirm .btn { margin:16px 12px 0 0; }
+.record-error .btn { margin-top:12px; }
+@media(max-width:700px) { .record-workbench { grid-template-columns:1fr; gap:24px; } .record-list { max-height:300px; } .demo-save { grid-column:1/-1; } .record-filters { display:grid; grid-template-columns:1fr; } .record-counts { display:grid; grid-template-columns:1fr 1fr; gap:20px; } .demo-records { margin-top:32px; } .record-form .btn { width:100%; } }

@@ -13,7 +13,7 @@ test("ClusterField stops hidden work and responds to live reduced motion", () =>
     addEventListener: (type, fn) => listeners.set(type, fn),
     removeEventListener: (type, fn) => { if (listeners.get(type) === fn) listeners.delete(type); },
   });
-  const el = { ...events(), clientWidth: 500, prepend() {}, getBoundingClientRect: () => ({ left: 0, top: 0, width: 500, height: 320 }) };
+  const el = { ...events(), clientWidth: 500, clientHeight: 320, prepend() {}, querySelector: () => null, querySelectorAll: () => [], getBoundingClientRect: () => ({ left: 0, top: 0, width: 500, height: 320 }) };
   const motion = { ...events(), matches: false };
   const document = { ...events(), hidden: false, documentElement: {} };
   const frames = new Map(), effects = [], refs = [];
@@ -25,10 +25,10 @@ test("ClusterField stops hidden work and responds to live reduced motion", () =>
   }
   const gsap = {
     killTweensOf() { tween = null; },
-    fromTo(target, from, to) { target.value = from.value; tween = { target, to }; },
+    to(target, to) { tween = { target, to }; },
   };
   const code = ts.transpileModule(fs.readFileSync(require.resolve("../components/ClusterField.tsx"), "utf8"), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
+    compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
   }).outputText;
   const context = {
     exports: {}, document, devicePixelRatio: 1,
@@ -41,20 +41,25 @@ test("ClusterField stops hidden work and responds to live reduced motion", () =>
     require: name => {
       if (name === "react") return {
         useEffect: fn => effects.push(fn),
-        useRef: value => { const ref = { current: refs.length === 0 ? el : value }; refs.push(ref); return ref; },
-        useState: () => [false, () => {}],
+        useRef: value => { const ref = { current: refs.length < 2 ? el : value }; refs.push(ref); return ref; },
+        useState: value => [value, () => {}],
       };
       if (name === "three") return { ...THREE, WebGLRenderer: Renderer };
       if (name === "gsap") return gsap;
-      if (name === "@/lib/data") return { scatter: [{ x: 0, y: 0, c: 0 }, { x: 1, y: 1, c: 1 }] };
+      if (name === "@/lib/data") return { CLUSTERS_META: Object.fromEntries(Array.from({length: 8}, (_, i) => [i, {}])), scatter: Array.from({length: 8}, (_, c) => ({x: c, y: c, c})) };
+      if (name === "@/data/map-photos.json") return { photos: [] };
+      if (name === "@/data/map-atlas.json") return { entries: [], pages: [] };
+      if (name === "@/lib/map-layout") { const m = { exports: {} }; vm.runInNewContext(ts.transpileModule(fs.readFileSync(require.resolve("../lib/map-layout.ts"), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, { exports: m.exports }); return m.exports; }
+      if (name.endsWith(".module.css")) return {};
       if (name === "./ClusterMap") return () => null;
       return require(name);
     },
   };
   vm.runInNewContext(code, context);
   context.exports.default({ selected: 0, onSelect() {} });
-  const cleanup = effects[0]();
-  const select = id => refs[1].current.select(id);
+  effects[0]();
+  const cleanup = effects[1]();
+  const select = id => refs[3].current.select(id);
   const flush = () => {
     for (let i = 0; frames.size && i < 200; i++) {
       const batch = [...frames.values()]; frames.clear(); batch.forEach(fn => fn());
@@ -62,8 +67,19 @@ test("ClusterField stops hidden work and responds to live reduced motion", () =>
     assert.equal(frames.size, 0, "idle view must stop requesting frames");
   };
   flush();
+  const idleRenders = renders;
+  for (let i = 0; i < 40; i++) listeners.get("wheel")({ preventDefault() {}, clientX: 250, clientY: 160, deltaY: -2, deltaMode: 0 });
+  assert.equal(frames.size, 1, "gesture burst must coalesce into one scheduled frame");
+  flush();
+  assert.equal(renders, idleRenders + 1);
   select(1);
   assert.ok(tween);
+  select(2);
+  assert.equal(tween.to.x, 2, "latest selection owns camera target");
+  refs[3].current.reset();
+  assert.equal(tween.to.zoom, 1);
+  select(2);
+  assert.equal(tween.to.x, 2, "same selected cluster refocuses after overview reset");
   document.hidden = true;
   listeners.get("visibilitychange")();
   assert.equal(frames.size, 0);
@@ -85,7 +101,7 @@ test("ClusterField stops hidden work and responds to live reduced motion", () =>
   assert.equal(tween, null);
   intersection([{ isIntersecting: true }]);
   flush();
-  listeners.get("pointermove")({ clientX: 500, clientY: 320 });
+  listeners.get("pointermove")({ pointerId: 1, clientX: 500, clientY: 320 });
   select(5);
   motion.matches = true;
   listeners.get("change")();
@@ -93,8 +109,7 @@ test("ClusterField stops hidden work and responds to live reduced motion", () =>
   const beforeReduced = renders;
   flush();
   assert.equal(renders, beforeReduced + 1, "reduced motion must reset without easing frames");
-  listeners.get("pointermove")({ clientX: 500, clientY: 320 });
-  listeners.get("pointerleave")();
+  listeners.get("pointermove")({ pointerId: 1, clientX: 500, clientY: 320 });
   assert.equal(frames.size, 0);
   select(6);
   assert.equal(tween, null);
