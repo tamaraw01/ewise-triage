@@ -192,7 +192,12 @@ figcaption { font-size:14px; color:var(--bone-dim); line-height:1.6; padding:16p
 .inspection-evidence { grid-column:1/-1; min-width:0; border-top:1px solid var(--edge); padding:28px; }
 .evidence-heading { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:8px 20px; margin-bottom:24px; }
 .evidence-heading h3 { font-size:22px; font-weight:600; letter-spacing:-.02em; }
-.evidence-columns { display:grid; grid-template-columns:minmax(0,.85fr) minmax(0,1.3fr) minmax(0,1fr); gap:28px; }
+.result-route { display:flex; align-items:center; gap:22px; padding-bottom:20px; border-bottom:1px solid var(--edge); color:var(--green); }
+.result-route.needs-check { color:var(--amber); }
+.result-route h3 { font-size:clamp(1.6rem,2.8vw,2.2rem); line-height:1.2; }
+.inspection-decision .result-group .ticket-id h3 { font-size:clamp(1.5rem,2.2vw,2rem); }
+.result-route .label { display:block; color:var(--bone-dim); margin-bottom:6px; }
+.evidence-columns { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:28px; }
 .evidence-column { min-width:0; }
 .evidence-column + .evidence-column { border-left:1px solid var(--edge); padding-left:28px; }
 .evidence-column .label { font-size:14px; margin-bottom:14px; }

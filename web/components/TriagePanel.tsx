@@ -5,9 +5,9 @@ import Image from "next/image";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 
-import { fixed4, CLUSTERS_META, LANES, type LaneCode } from "@/lib/data";
+import { fixed4, CLUSTERS_META, HANDLING_SOURCES, LANES, type LaneCode } from "@/lib/data";
 import { submitToBackend } from "@/lib/api";
-import { MarginMeter, StatusPill, IconWarn } from "./Primitives";
+import { IconWarn } from "./Primitives";
 import ClusterMap from "./ClusterMap";
 import { automaticLane, candidateLabel, manualReason, parsePrediction, validateFile } from "@/lib/session";
 
@@ -337,13 +337,7 @@ function ResultCard({ data, onReset, onExplore }: { data: Prediction; onReset: (
   const auto = Boolean(cMeta) && automaticLane(data) !== "MR";
   const laneKey: LaneCode = auto ? cMeta.lane : "MR";
   const lane = LANES[laneKey];
-  const hazard = laneKey === "P1";
-  const reason = !auto
-    ? manualReason(data) || (data.runner_up?.label
-      ? `${data.cluster.handling}. Kandidat kedua C${data.runner_up.id} (${data.runner_up.label}) terlalu rapat.`
-      : data.cluster.handling)
-    : "";
-  const fill = auto ? "var(--green)" : "var(--bone-dim)";
+  const reason = manualReason(data) || "Jenis barang belum pasti. Petugas perlu memeriksa sebelum memilih jalur.";
   const candidates = (Array.isArray(data.ranking) ? data.ranking : [])
     .filter(candidate => candidate && Number.isInteger(candidate.cluster) && candidate.cluster >= 0 &&
       (candidate.label === null || typeof candidate.label === "string") && Number.isFinite(candidate.similarity))
@@ -359,44 +353,33 @@ function ResultCard({ data, onReset, onExplore }: { data: Prediction; onReset: (
     <>
       <section className="inspection-verdict" aria-labelledby="result-device">
         <div className="inspection-decision">
+          <header className={`result-route${laneKey === "P1" || !auto ? " needs-check" : ""}`} aria-label={`Saran jalur ${lane.code}: ${lane.name}`}>
+            <span className="num lane-code">{lane.code}</span>
+            <div><span className="label">Saran jalur</span><h3>{lane.name}</h3></div>
+          </header>
           <div className="result-group">
-            <h4 className="label">Kelompok</h4>
+            <h4 className="label">{auto ? "Kelompok barang" : "Kandidat kelompok"}</h4>
             <div className="ticket-id">
               <span className="num chip">C{data.cluster.id}</span>
               <h3 id="result-device">{cMeta?.sub ?? candidateLabel(data) ?? "Kelompok belum pasti"}</h3>
             </div>
-            <p className="ticket-sub">{auto ? cMeta.sub : `Kandidat terdekat: C${data.cluster.id} (${candidateLabel(data) ?? "tidak tersedia"})`}</p>
-          </div>
-          <div className="result-evidence">
-            <h4 className="label">Bukti</h4>
-            <p><span className="num">{fixed4(data.margin)}</span> margin, {data.margin >= data.threshold ? "di atas" : "di bawah"} ambang <span className="num">{fixed4(data.threshold)}</span>. Skor kemiripan, bukan probabilitas.</p>
-            <button type="button" className="btn" onClick={explore}>Lihat kelompok pembanding</button>
-            {exploreError && <p className="inline-note" role="alert">{exploreError}</p>}
           </div>
           <div className="inspection-handling">
-            <h4 className="label">Status pemeriksaan</h4>
-            <StatusPill auto={auto} text={auto ? "Saran kelompok tersedia. Konfirmasi kondisi fisik." : "Periksa barang secara manual."} />
+            <h4 className="label">Penanganan awal</h4>
             {auto && cMeta.hazard && <div className="hazard-note"><IconWarn /><span>{cMeta.hazard}</span></div>}
-            <p>{auto ? `${cMeta.action} Ikuti SOP fasilitas setelah pemeriksaan fisik.` : reason}</p>
+            <p>{auto ? cMeta.action : reason}</p>
+            {!auto && <p className="hazard-note">Jangan bongkar, pecahkan, atau cacah sebelum diperiksa.</p>}
+            <small className="dim">Konfirmasi fisik dan SOP fasilitas tetap wajib.</small>
           </div>
-          <details className="result-reference">
-            <summary>Acuan penanganan · <span className="num">{lane.code}</span></summary>
-            <p className={hazard ? "hazard-note" : "dim"}>{lane.name}. {lane.desc}</p>
-          </details>
+          <button type="button" className="btn" onClick={explore}>Lihat kelompok pembanding</button>
+          {exploreError && <p className="inline-note" role="alert">{exploreError}</p>}
           <button type="button" className="btn btn-primary btn-block" onClick={onReset}>Triase barang berikutnya</button>
         </div>
       </section>
 
       <section ref={evidenceRef} className="inspection-evidence" aria-labelledby="evidence-title">
-        <div className="evidence-heading"><h3 id="evidence-title">Bukti pencocokan</h3><span className="spec">Skor kemiripan, bukan probabilitas</span></div>
+        <div className="evidence-heading"><h3 id="evidence-title">Hasil pencocokan</h3><span className="spec">Kemiripan, bukan probabilitas</span></div>
         <div className="evidence-columns">
-          <div className="evidence-column evidence-margin">
-            <h4 className="label">Margin kecocokan klaster</h4>
-            <div className="num reading">{fixed4(data.margin)}</div>
-            <p className="margin-state" style={{ color: fill }}>{data.margin >= data.threshold ? "Di atas ambang" : "Di bawah ambang"} <span className="num">{fixed4(data.threshold)}</span></p>
-            <MarginMeter margin={data.margin} threshold={data.threshold} colorClass={fill} />
-            <p className="dim">Selisih dua skor teratas. {auto ? "Tetap periksa kondisi barang." : "Jalur manual tetap berlaku."}</p>
-          </div>
           <div className="evidence-column evidence-ranking">
             <h4 className="label">Kandidat klaster</h4>
             <div className="signed-scale num" aria-hidden="true"><span>−1</span><span>0</span><span>1</span></div>
@@ -415,8 +398,18 @@ function ResultCard({ data, onReset, onExplore }: { data: Prediction; onReset: (
             ) : <p className="dim">Peringkat kandidat tidak tersedia.</p>}
           </div>
           <div className="evidence-column evidence-detail">
-            <h4 className="label">Catatan barang</h4>
-            {auto ? <p><b>Potensi material</b><br />{cMeta.material}. Bukan komposisi yang terdeteksi dari foto.</p> : <p className="dim">Identitas dan jalur penanganan perlu pemeriksaan petugas.</p>}
+            <h4 className="label">Potensi material</h4>
+            {auto ? <><p>{cMeta.material}</p><p className="spec dim">Acuan jenis barang, bukan kandungan terukur.</p></> : <p className="dim">Belum ditentukan. Tunggu pemeriksaan fisik.</p>}
+            <details className="block handling-sources">
+              <summary>Sumber penanganan</summary>
+              <ul>{HANDLING_SOURCES.map(source => <li key={source.url}><a href={source.url} target="_blank" rel="noopener noreferrer">{source.name}</a></li>)}</ul>
+              <p className="spec dim">Acuan teknis, bukan jaminan keamanan. Sumber luar negeri tidak menggantikan ketentuan Indonesia.</p>
+            </details>
+            <details className="block technical-evidence">
+              <summary>Detail teknis</summary>
+              <dl className="facts"><div><dt>Selisih dua skor teratas</dt><dd className="num">{fixed4(data.margin)}</dd></div><div><dt>Ambang tinjau</dt><dd className="num">{fixed4(data.threshold)}</dd></div></dl>
+              <p className="spec dim">Nilai ini bukan peluang benar atau ukuran keamanan barang.</p>
+            </details>
             {zsEntries.length > 0 && (
               <details className="zs block">
                 <summary>Detail label</summary>

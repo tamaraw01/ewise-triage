@@ -108,9 +108,9 @@ function Explorer({ selected, onSelect: setSelected }: { selected: number; onSel
           <p className="dossier-note">Kemurnian dihitung pada citra referensi, bukan akurasi untuk foto baru.</p>
           <ClusterGallery selected={selected} />
           <details className="dossier-detail"><summary>Detail label</summary><dl className="facts"><div><dt>Label sistem</dt><dd>{c.name}</dd></div><div><dt>Skor kecocokan label</dt><dd className="num">{fixed4(c.sim)}</dd></div><div><dt>Selisih skor label</dt><dd className="num">{fixed4(c.zs)}</dd></div></dl><p className="dossier-note">Selisih skor dua label teratas. Bukan skor kecocokan foto yang diunggah.</p></details>
-          {c.hazard && <p className="hazard-note">Perhatian: {c.hazard}.</p>}
-          <div className="dossier-action"><h4>Penanganan oleh petugas terlatih</h4><p>{c.action} Ikuti SOP fasilitas setelah pemeriksaan fisik.</p></div>
-          <p className="dossier-note"><strong>Potensi material: </strong>{c.material}. Bukan komposisi yang terdeteksi dari foto.</p>
+          {c.hazard && <p className="hazard-note">{c.hazard}</p>}
+          <div className="dossier-action"><h4>Penanganan awal</h4><p>{c.action}</p></div>
+          <p className="dossier-note"><strong>Material: </strong>{c.material}</p>
         </article>
       </div>
       <div className="explorer-reference">

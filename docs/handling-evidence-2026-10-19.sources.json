@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "id": 1,
+      "url": "https://eur-lex.europa.eu/eli/dir/2012/19/oj",
+      "title": "WEEE Annex VII",
+      "accessed": "2026-10-19",
+      "quotes": [
+        {
+          "text": "printed circuit boards of mobile phones generally, and of other devices if the surface of the printed circuit board is greater than 10 square centimetres,",
+          "added": "2026-10-19"
+        },
+        {
+          "text": "mercury containing components, such as switches or backlighting lamps,",
+          "added": "2026-10-19"
+        },
+        {
+          "text": "toner cartridges, liquid and paste, as well as colour toner,",
+          "added": "2026-10-19"
+        },
+        {
+          "text": "external electric cables,",
+          "added": "2026-10-19"
+        },
+        {
+          "text": "gas discharge lamps: the mercury shall be removed.",
+          "added": "2026-10-19"
+        },
+        {
+          "text": "cathode ray tubes: the fluorescent coating has to be removed,",
+          "added": "2026-10-19"
+        },
+        {
+          "text": "liquid crystal displays (together with their casing where appropriate) of a surface greater than 100 square centimetres and all those back-lighted with gas discharge lamps,",
+          "added": "2026-10-19"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "url": "https://www.epa.gov/recycle/used-lithium-ion-batteries",
+      "title": "EPA Used Lithium-Ion Batteries",
+      "accessed": "2026-10-19",
+      "quotes": [
+        {
+          "text": "To prevent fires, tape battery terminals and/or place lithium-ion batteries in separate plastic bags.",
+          "added": "2026-10-19"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "url": "https://www.cpsc.gov/s3fs-public/micro.pdf",
+      "title": "CPSC Microwave electrocution warning",
+      "accessed": "2026-10-19",
+      "quotes": [
+        {
+          "text": "The possibility for electrical shock from a\nmicrowave oven still exists even after the oven is disconnected from the power source.",
+          "added": "2026-10-19"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "url": "https://www.epa.gov/hw/frequent-questions-about-regulation-used-cathode-ray-tubes-crts-and-crt-glass",
+      "title": "EPA CRT FAQ",
+      "accessed": "2026-10-19",
+      "quotes": [
+        {
+          "text": "CRT processed glass is glass that has been broken and sorted into the different glass portions of the CRT (panel, funnel, and frit line) which are classified according to",
+          "added": "2026-10-19"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "url": "https://pubs.usgs.gov/fs/2006/3097/fs2006-3097.pdf",
+      "title": "USGS Recycled Cell Phones",
+      "accessed": "2026-10-19",
+      "quotes": [
+        {
+          "text": "This USGS Fact Sheet examines the potential value of recycling the metals found in obsolete cell phones.",
+          "added": "2026-10-19"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "url": "https://peraturan.bpk.go.id/Download/351283/Permen%20LHK%20No%209%20Tahun%202024.pdf",
+      "title": "Permen LHK 9/2024",
+      "accessed": "2026-10-19",
+      "quotes": [
+        {
+          "text": "usaha dan/atau kegiatan yang memiliki perizinan\n           berusaha di bidang Pengelolaan Limbah B3.",
+          "added": "2026-10-19"
+        }
+      ]
+    }
+  ]
+}
