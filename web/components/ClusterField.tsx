@@ -6,7 +6,7 @@ import gsap from "gsap";
 import { scatter } from "@/lib/data";
 import photos from "@/data/map-photos.json";
 import styles from "./ClusterField.module.css";
-import { viewportPhotos } from "@/lib/map-layout";
+import { viewportPhotos, filenameLabels } from "@/lib/map-layout";
 
 type View = { x: number; y: number; zoom: number };
 const points = scatter.map(p => ({ ...p, y: -p.y }));
@@ -17,6 +17,7 @@ const bounds = (items: typeof points) => {
 };
 const whole = bounds(points);
 const clusterIds = [...new Set(points.map(p => p.c))].sort((a, b) => a - b);
+const clusterColors = ["#b8cc8e", "#76b7a5", "#d5bb79", "#cc9380", "#88accc", "#b09ec4", "#d0aa91", "#80c1bd", "#b8bf73", "#c994a5", "#93b98c", "#b4b9d3", "#d3a76b", "#98c7b3"];
 const clusterBounds = Object.fromEntries(clusterIds.map(id => [id, bounds(points.filter(p => p.c === id))]));
 // ponytail: 1000x separates nearly all overlapping filenames (~9 pairs remain). Raise the cap if dense pairs still need separating.
 const clamp = (zoom: number) => Math.min(1000, Math.max(1, zoom));
@@ -36,7 +37,7 @@ function Photo({ index, large = false }: { index: number; large?: boolean }) {
 export default function ClusterField({ selected, onSelect }: { selected: number; onSelect: (id: number) => void }) {
   const host = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLDivElement>(null);
-  const dialog = useRef<HTMLDialogElement>(null);
+  const detail = useRef<HTMLElement>(null);
   const api = useRef<{ select: (id: number) => void; zoom: (factor: number) => void; reset: () => void; locate: (i: number) => void } | null>(null);
   const selection = useRef(selected);
   const previousSelection = useRef(selected);
@@ -50,7 +51,7 @@ export default function ClusterField({ selected, onSelect }: { selected: number;
   const open = (index: number) => {
     setActive(index);
     callback.current(points[index].c);
-    dialog.current?.showModal();
+
   };
   const openRef = useRef(open);
   useEffect(() => {
@@ -70,12 +71,13 @@ export default function ClusterField({ selected, onSelect }: { selected: number;
     const camera = new THREE.PerspectiveCamera(32, 1, .001, 10000);
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.Float32BufferAttribute(points.flatMap(p => [p.x, p.y, 0]), 3));
+    geometry.setAttribute("aColor", new THREE.Float32BufferAttribute(points.flatMap(p => { const c = new THREE.Color(clusterColors[p.c]); return [c.r, c.g, c.b]; }), 3));
     geometry.setAttribute("aCluster", new THREE.Float32BufferAttribute(points.map(p => p.c), 1));
     const uniforms = { selected: { value: selection.current }, pixel: { value: Math.min(devicePixelRatio, 2) } };
     const material = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms,
-      vertexShader: `attribute float aCluster; uniform float selected, pixel; varying float hi;
-        void main(){hi=aCluster==selected?1.:0.;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);gl_PointSize=mix(3.,6.,hi)*pixel;}`,
-      fragmentShader: `varying float hi;void main(){gl_FragColor=vec4(mix(vec3(.61,.63,.57),vec3(.655,.729,.514),hi),mix(.55,1.,hi));}` });
+      vertexShader: `attribute float aCluster; attribute vec3 aColor; uniform float selected, pixel; varying float hi; varying vec3 tint;
+        void main(){tint=aColor;hi=aCluster==selected?1.:0.;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);gl_PointSize=mix(3.,6.,hi)*pixel;}`,
+      fragmentShader: `varying float hi;varying vec3 tint;void main(){gl_FragColor=vec4(tint,mix(.85,1.,hi));}` });
     scene.add(new THREE.Points(geometry, material));
     if (renderer) { renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); surface.prepend(renderer.domElement); }
     const view: View = { x: whole.x, y: whole.y, zoom: 1 };
@@ -95,20 +97,24 @@ export default function ClusterField({ selected, onSelect }: { selected: number;
       renderer?.render(scene, camera);
       setZoom(view.zoom);
       const projected = points.map((point, index) => ({ index, ...project(point) }));
-      const shown = view.zoom >= 3 ? viewportPhotos(projected, width, height) : [];
+      const visiblePoints = viewportPhotos(projected, width, height);
+      if (ctx) ctx.font = "11px sans-serif";
+      const shown = ctx && view.zoom >= 24 ? filenameLabels(visiblePoints, width, height, i => ctx.measureText(photos.photos[i].filename).width) : [];
       if (layer && ctx) {
         ctx.clearRect(0, 0, width, height);
-        if (!renderer) for (const p of projected) {
-          ctx.fillStyle = points[p.index].c === selection.current ? "#a7ba83" : "#9ca192";
-          ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+        for (const p of visiblePoints) {
+          ctx.fillStyle = clusterColors[points[p.index].c];
+          const size = points[p.index].c === selection.current ? 6 : 4;
+          ctx.fillRect(p.x - size / 2, p.y - size / 2, size, size);
         }
         // Filenames only; the photo loads after a point is clicked.
         ctx.font = "11px sans-serif"; ctx.textBaseline = "middle";
         for (const p of shown) {
-          ctx.fillStyle = points[p.index].c === selection.current ? "#a7ba83" : "#9ca192";
+          ctx.fillStyle = clusterColors[points[p.index].c];
           ctx.fillRect(p.x - 3, p.y - 3, 6, 6);
-          ctx.fillStyle = "#eeeade"; ctx.fillText(photos.photos[p.index].filename, p.x + 6, p.y);
+          ctx.fillStyle = "#eeeade"; ctx.fillText(photos.photos[p.index].filename, p.x + 8, p.y);
         }
+        layer.dataset.points = JSON.stringify(visiblePoints.map(p => [p.index, Math.round(p.x), Math.round(p.y)]));
         layer.dataset.named = JSON.stringify(shown.map(p => [p.index, Math.round(p.x), Math.round(p.y)]));
         layer.dataset.camera = JSON.stringify({ x: view.x, y: view.y, zoom: view.zoom, spanX, spanY, width, height });
       }
@@ -168,7 +174,7 @@ export default function ClusterField({ selected, onSelect }: { selected: number;
       const p = local(e);
       let best = -1, distance = 22 ** 2;
       points.forEach((point, index) => { const s = project(point), d = (s.x - p.x) ** 2 + (s.y - p.y) ** 2; if (d < distance) { distance = d; best = index; } });
-      if (best >= 0) { if (view.zoom >= 3) openRef.current(best); else { callback.current(points[best].c); focus(points[best].c); } }
+      if (best >= 0) { openRef.current(best); }
     };
     const wheel = (e: WheelEvent) => { e.preventDefault(); const p = local(e); const delta = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? height : 1); zoomAt(Math.exp(-Math.max(-200, Math.min(200, delta)) * .003), p.x, p.y); };
     const key = (e: KeyboardEvent) => {
@@ -197,9 +203,10 @@ export default function ClusterField({ selected, onSelect }: { selected: number;
   }, []);
 
   useEffect(() => {
-    if (previousSelection.current !== selected && !dialog.current?.open) api.current?.select(selected);
+    if (previousSelection.current !== selected && (active === null || points[active].c !== selected)) api.current?.select(selected);
     previousSelection.current = selected;
-  }, [selected]);
+  }, [selected, active]);
+  useEffect(() => { if (active !== null) detail.current?.focus({ preventScroll: true }); }, [active]);
   const results = query.trim() ? photos.photos.map((photo, index) => ({ photo, index })).filter(({ photo }) => photo.filename.toLowerCase().includes(query.trim().toLowerCase())) : [];
   const pages = Math.ceil(results.length / 12);
   return <section className={styles.explorer} aria-label="Peta foto perangkat">
@@ -210,18 +217,20 @@ export default function ClusterField({ selected, onSelect }: { selected: number;
       <button type="button" onClick={() => api.current?.reset()}>Seluruh peta</button>
       <output aria-label="Tingkat zoom">{zoom.toFixed(1)}×</output>
     </div>
-    <div ref={host} className={styles.map} tabIndex={0} role="region" aria-label="Peta interaktif" aria-describedby="cluster-map-help" data-zoom={zoom.toFixed(2)}>
+    <div className={`${styles.mapArea} ${active !== null ? styles.withDetail : ""}`}>
+    <div ref={host} className={styles.map} tabIndex={0} role="region" aria-label="Peta interaktif" data-zoom={zoom.toFixed(2)}>
       <div ref={canvas} className={styles.surface} aria-hidden="true"><canvas data-photo-layer="true" /></div>
     </div>
-    <p id="cluster-map-help" className={styles.help}>Gulir atau cubit untuk zoom. Geser peta. Keyboard: + / −, panah, Home. Nama file muncul mulai 3×; klik titik untuk melihat foto.</p>
+    {active !== null && <aside ref={detail} tabIndex={-1} aria-labelledby="map-photo-title" className={styles.detail} onKeyDown={e => { if (e.key === "Escape") { setActive(null); host.current?.focus(); } }}>
+      <button type="button" className={styles.close} onClick={() => { setActive(null); host.current?.focus(); }}>Tutup foto</button>
+      <Photo key={active} index={active} large /><h3 id="map-photo-title">{photos.photos[active]?.filename}</h3><p>C{points[active].c} · {photos.photos[active]?.label}</p>
+    </aside>}
+    </div>
     <div className={styles.search}>
       <label>Cari nama file <input type="search" value={query} onChange={e => { setQuery(e.target.value); setPage(0); }} placeholder="Keyboard_0.jpg" /></label>
       {query.trim() && <div className={styles.results} aria-live="polite">{results.length ? results.slice(page * 12, (page + 1) * 12).map(({ photo, index }) => <button type="button" key={index} onClick={() => { api.current?.locate(index); open(index); }}>{photo.filename} · C{points[index].c}</button>) : <span>File tidak ditemukan.</span>}</div>}
     </div>
     {results.length > 0 && <div className={styles.pagination}><span>{results.length} file · {page + 1}/{pages}</span><button type="button" disabled={page === 0} onClick={() => setPage(page - 1)}>Sebelumnya</button><button type="button" disabled={page + 1 >= pages} onClick={() => setPage(page + 1)}>Berikutnya</button></div>}
-    <dialog ref={dialog} aria-labelledby="map-photo-title" className={styles.dialog} onClick={e => { if (e.target === dialog.current) dialog.current.close(); }}>
-      <button type="button" className={styles.close} onClick={() => dialog.current?.close()}>Tutup foto</button>
-      {active !== null && <><Photo key={active} index={active} large /><h3 id="map-photo-title">{photos.photos[active]?.filename}</h3><p>C{points[active].c} · {photos.photos[active]?.label}</p><p className={styles.help}>Label dari nama file. Pratinjau beresolusi {photos.photos[active]?.width} × {photos.photos[active]?.height} piksel; subtipe belum diverifikasi.</p></>}
-    </dialog>
+
   </section>;
 }

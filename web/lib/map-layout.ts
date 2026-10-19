@@ -5,6 +5,13 @@ export function viewportPhotos(marks: MapMark[], width: number, height: number) 
   return marks.filter(p => p.x + 32 >= 0 && p.x - 32 <= width && p.y + 32 >= 0 && p.y - 32 <= height);
 }
 
+export function filenameLabels(marks: MapMark[], width: number, height: number, measure: (index: number) => number) {
+  const boxes = marks.map(p => ({ ...p, left: p.x + 8, right: p.x + 8 + measure(p.index), top: p.y - 8, bottom: p.y + 8 }));
+  return boxes.filter(p => p.left >= 0 && p.right <= width && p.top >= 0 && p.bottom <= height &&
+    !boxes.some(q => q.index !== p.index && p.left < q.right + 4 && p.right + 4 > q.left && p.top < q.bottom + 4 && p.bottom + 4 > q.top) &&
+    !marks.some(q => q.index !== p.index && q.x + 4 > p.left && q.x - 4 < p.right && q.y + 4 > p.top && q.y - 4 < p.bottom));
+}
+
 export function overviewLabels(marks: MapMark[], width: number, height: number) {
   const placed: MapMark[] = [];
   return marks.map(mark => {

@@ -15,6 +15,15 @@ test('viewport keeps every overlapping identity, edges, and original coordinates
   assert.deepEqual(Array.from(layout.viewportPhotos(edges, 390, 360), p => p.index), [1, 2, 3, 4]);
 });
 
+test('filenames appear only when separated, inside viewport, and clear of other points', () => {
+  const marks = [{index:0,x:20,y:30},{index:1,x:25,y:30}];
+  assert.equal(layout.filenameLabels(marks,400,200,()=>100).length,0);
+  marks[1].x=220;
+  assert.equal(layout.filenameLabels(marks,400,200,()=>100).length,2);
+  assert.equal(layout.filenameLabels([{index:0,x:380,y:30}],400,200,()=>100).length,0);
+  assert.equal(layout.filenameLabels([{index:0,x:20,y:30},{index:1,x:80,y:30}],400,200,()=>100).length,0);
+});
+
 test('all actual cluster IDs get non-overlapping on-screen overview labels on desktop and mobile', () => {
   const data = require('../data/analysis-flow.json');
   const ids = [...new Set(data.points.map(p => p[5]))].sort((a, b) => a - b);
