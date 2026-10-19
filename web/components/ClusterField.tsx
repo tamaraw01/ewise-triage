@@ -9,7 +9,7 @@ import styles from "./ClusterField.module.css";
 import { viewportPhotos, filenameLabels } from "@/lib/map-layout";
 
 type View = { x: number; y: number; zoom: number };
-const points = scatter.map(p => ({ ...p, y: -p.y }));
+const points = scatter;
 const bounds = (items: typeof points) => {
   const xs = items.map(p => p.x), ys = items.map(p => p.y);
   return { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2,

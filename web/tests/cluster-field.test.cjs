@@ -67,11 +67,12 @@ test("ClusterField stops hidden work and responds to live reduced motion", () =>
     assert.equal(frames.size, 0, "idle view must stop requesting frames");
   };
   flush();
-  const click = { button: 0, pointerId: 1, clientX: 250 + .5 / (7 * 1.18) * 320, clientY: 160 + .5 / (7 * 1.18) * 320, target: { closest: () => null } };
+  const click = { button: 0, pointerId: 1, clientX: 250 + .5 / (7 * 1.18) * 320, clientY: 160 - .5 / (7 * 1.18) * 320, target: { closest: () => null } };
   listeners.get("pointerdown")(click);
   listeners.get("pointerup")(click);
   assert.ok(tween, "overview point click must focus cluster, not open photo");
   assert.equal(tween.to.x, 4);
+  assert.equal(tween.to.y, 4, "positive notebook Y must stay positive in Explorer");
   assert.ok(tween.to.zoom > 1);
   gsap.killTweensOf();
   const idleRenders = renders;
