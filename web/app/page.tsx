@@ -9,6 +9,7 @@ import DemoWorkspace from "@/components/DemoWorkspace";
 import "./demo.css";
 import ResearchDashboard from "@/components/ResearchDashboard";
 import AnalysisFlow from "@/components/AnalysisFlow";
+import Implementation from "@/components/Implementation";
 import ExplorationTools, { researchClusters } from "@/components/ExplorationTools";
 import ClusterGallery from "@/components/ClusterGallery";
 const ClusterField = dynamic(() => import("@/components/ClusterField"), {
@@ -20,7 +21,7 @@ import { LANES, fixed4, scatter } from "@/lib/data";
 
 gsap.registerPlugin(useGSAP);
 
-const sections = ["Konsol", "Cluster Explorer", "Statistik", "Proses"] as const;
+const sections = ["Konsol", "Cluster Explorer", "Statistik", "Proses", "Implementasi"] as const;
 type Section = (typeof sections)[number];
 const clusters = researchClusters;
 gsap.config({ nullTargetWarn: false }); // panels share one timeline; absent targets are expected
@@ -68,6 +69,7 @@ export default function Page() {
         <div id="panel-1" role="tabpanel" aria-labelledby="tab-1" hidden={section !== "Cluster Explorer"}>{explorerOpened && <Explorer selected={selected} onSelect={setSelected} />}</div>
         <div id="panel-2" role="tabpanel" aria-labelledby="tab-2" hidden={section !== "Statistik"}>{section === "Statistik" && <ResearchDashboard />}</div>
         <div id="panel-3" role="tabpanel" aria-labelledby="tab-3" hidden={section !== "Proses"}>{section === "Proses" && <AnalysisFlow />}</div>
+        <div id="panel-4" role="tabpanel" aria-labelledby="tab-4" hidden={section !== "Implementasi"}>{section === "Implementasi" && <Implementation />}</div>
       </div>
       <footer className="dashboard-footer">© {new Date().getFullYear()} E-WISE</footer>
     </main>
