@@ -6,7 +6,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const ts = require('typescript');
 
-function harness(file, expose = '') {
+function harness(file, expose = '', overrides = {}) {
   const values = [];
   let cursor = 0;
   const frames = [];
@@ -28,6 +28,7 @@ function harness(file, expose = '') {
     '@/lib/session': {
       automaticLane: data => data.status === 'classified' ? 'P1' : 'MR',
       candidateLabel: data => data.cluster.label,
+      manualExplanation: () => null,
       manualReason: data => [9, 11].includes(data.cluster.id) ? 'Jenis perangkat belum dapat dipastikan.' : '',
     },
     '@/data/meta.json': { dataset_images_used: 2660 },
@@ -36,8 +37,8 @@ function harness(file, expose = '') {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
   }).outputText;
   const exports = {};
-  vm.runInNewContext(code, { exports, require: id => modules[id] || { default: id }, requestAnimationFrame: fn => frames.push(fn), document: { getElementById: id => ({ focus: () => { focused = id; } }) } });
-  return { render: (props = {}) => { cursor = 0; return exports.default(props); }, result: props => { cursor = 0; return exports.ResultCard(props); }, frames, values, focused: () => focused };
+  vm.runInNewContext(code, { exports, require: id => overrides[id] || modules[id] || { default: id }, requestAnimationFrame: fn => frames.push(fn), document: { getElementById: id => ({ focus: () => { focused = id; } }) } });
+  return { render: (props = {}) => { cursor = 0; return exports.default(props); }, result: props => { cursor = 0; return exports.ResultCard(props); }, record: props => { cursor = 0; return exports.RecordDetail(props); }, frames, values, focused: () => focused };
 }
 function nodes(tree) {
   if (!tree || typeof tree !== 'object') return [];
@@ -98,6 +99,29 @@ test('Result leads with route; hazards visible and technical margin collapsed', 
     assert.match(text(manual), /MR/);
     assert.match(text(manual), /Jangan bongkar, pecahkan, atau cacah/);
     assert.match(text(manual), id === 99 ? /Jenis barang belum pasti/ : /Jenis perangkat belum dapat dipastikan/);
+  }
+});
+
+test('C9/C11 explanations render in result and saved inference; other MR stays generic', () => {
+  require.extensions['.ts'] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, filename);
+  const session = require('../lib/session.ts');
+  for (const id of [9, 11, 4]) {
+    const data = { status: 'review', margin: .001, threshold: .0297, cluster: { id, label: null, contested: false, route: 'MANUAL_REVIEW', handling: '' } };
+    const explanation = session.manualExplanation(id);
+    const expected = id === 9 ? 'Foto perlu diperiksa ulang' : id === 11 ? 'Kategori pemutar musik perlu dikonfirmasi' : session.NAMING_FAILURE_REASON;
+    const result = harness('components/TriagePanel.tsx', '\nexport { ResultCard };', { '@/lib/session': session }).result({ data, onReset() {} });
+    const record = { id: 'old-record', fileName: 'old.jpg', createdAt: '2026-10-01T00:00:00.000Z', inference: data, reviews: [], provenance: 'backend version not supplied' };
+    const before = JSON.stringify(record);
+    const saved = harness('components/DemoWorkspace.tsx', '\nexport { RecordDetail };', { '@/lib/session': session, '@/lib/demo-records': require('../lib/demo-records.ts') }).record({ record });
+    for (const tree of [result, saved]) {
+      assert.ok(text(tree).includes(id === 4 && tree === result ? 'Jenis barang belum pasti. Petugas perlu memeriksa sebelum memilih jalur.' : expected));
+      if (explanation) assert.ok(text(tree).includes(explanation.body));
+      assert.match(text(tree), /MR/);
+    }
+    assert.equal(JSON.stringify(record), before);
+    const categories = require('../lib/demo-records.ts').categoriesForLane('MR');
+    assert.ok(categories.includes('Perangkat campuran (perlu pemeriksaan)'));
+    assert.ok(!categories.includes('Foto referensi perlu ditinjau'));
   }
 });
 

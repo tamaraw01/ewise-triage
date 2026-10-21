@@ -102,7 +102,7 @@ function Explorer({ selected, onSelect: setSelected }: { selected: number; onSel
         </figure>
         <article ref={dossier} className="cluster-dossier" aria-live="polite">
           <div className="dossier-title"><span className="dossier-id num">C{c.id}</span><div><h3>{c.sub}</h3><span className={`spec${c.lane === "P1" ? " is-hazard" : ""}`}>{c.lane} · {LANES[c.lane].desc}</span></div></div>
-          {contested && <p className="caveat"><strong>Perlu pemeriksaan petugas. </strong>{c.id === 9 ? "C9 campuran; kelas dominan Keyboard hanya 25,8%." : "C11 dinamai Mobile, tetapi kelas dominan Player mencapai 99,6%."} Wajib peninjauan manual.</p>}
+          {contested && <p className="caveat"><strong>Perlu pemeriksaan petugas. </strong>{c.id === 9 ? "Referensi memuat foto berkualitas rendah atau warna yang berubah." : "Referensi pemutar musik memiliki ketidaksesuaian label."} Wajib peninjauan manual.</p>}
           <dl className="facts">
             <div><dt>Jumlah citra referensi</dt><dd className="num">{c.n}</dd></div>
             <div><dt>Kelas dominan / kemurnian kelompok</dt><dd>{c.dom} / <span className="num">{c.pur.toLocaleString("id-ID", { maximumFractionDigits: 1 })}%</span></dd></div>

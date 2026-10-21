@@ -9,7 +9,7 @@ import { fixed4, CLUSTERS_META, HANDLING_SOURCES, LANES, type LaneCode } from "@
 import { submitToBackend } from "@/lib/api";
 import { IconWarn } from "./Primitives";
 import ClusterMap from "./ClusterMap";
-import { automaticLane, candidateLabel, manualReason, parsePrediction, validateFile } from "@/lib/session";
+import { automaticLane, candidateLabel, manualExplanation, manualReason, parsePrediction, validateFile } from "@/lib/session";
 
 gsap.registerPlugin(useGSAP);
 
@@ -337,6 +337,7 @@ function ResultCard({ data, onReset, onExplore }: { data: Prediction; onReset: (
   const auto = Boolean(cMeta) && automaticLane(data) !== "MR";
   const laneKey: LaneCode = auto ? cMeta.lane : "MR";
   const lane = LANES[laneKey];
+  const explanation = manualExplanation(data.cluster.id);
   const reason = manualReason(data) || "Jenis barang belum pasti. Petugas perlu memeriksa sebelum memilih jalur.";
   const candidates = (Array.isArray(data.ranking) ? data.ranking : [])
     .filter(candidate => candidate && Number.isInteger(candidate.cluster) && candidate.cluster >= 0 &&
@@ -365,7 +366,7 @@ function ResultCard({ data, onReset, onExplore }: { data: Prediction; onReset: (
             </div>
           </div>
           <div className="inspection-handling">
-            <h4 className="label">Penanganan awal</h4>
+            <h4 className="label">{!auto && explanation ? explanation.title : "Penanganan awal"}</h4>
             {auto && cMeta.hazard && <div className="hazard-note"><IconWarn /><span>{cMeta.hazard}</span></div>}
             <p>{auto ? cMeta.action : reason}</p>
             {!auto && <p className="hazard-note">Jangan bongkar, pecahkan, atau cacah sebelum diperiksa.</p>}

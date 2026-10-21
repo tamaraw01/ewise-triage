@@ -81,9 +81,11 @@ test('queue runs sequentially, isolates errors and stops before next upload', as
 });
 test('C9 and C11 are forced to manual review regardless of margin', () => {
  for (const id of [9,11]) {
-  const result = {...prediction(id), margin: .5};
+  for (const status of ['classified', 'review']) for (const margin of [0, .001, .5]) {
+  const result = {...prediction(id, status), margin};
   assert.equal(session.automaticLane(result),'MR');
-  assert.equal(session.manualReason(result),'Jenis perangkat belum dapat dipastikan. Periksa barang secara manual sebelum menentukan jalur penanganan.');
+  assert.equal(session.manualReason(result), session.manualExplanation(id).body);
+  }
  }
  assert.equal(session.manualReason(prediction(4)),'');
 });

@@ -64,8 +64,19 @@ export function reviewItem(item: SessionItem, lane: LaneCode, note: string): Ses
 }
 export const NAMING_FAILURES = [9, 11];
 export const NAMING_FAILURE_REASON = 'Jenis perangkat belum dapat dipastikan. Periksa barang secara manual sebelum menentukan jalur penanganan.';
+export function manualExplanation(clusterId: number) {
+  if (clusterId === 9) return {
+    title: 'Foto perlu diperiksa ulang',
+    body: 'Hasil cocok dengan kelompok referensi yang memuat foto berkualitas rendah atau warna yang berubah. Coba foto ulang dengan pencahayaan merata dan tanpa filter.',
+  };
+  if (clusterId === 11) return {
+    title: 'Kategori pemutar musik perlu dikonfirmasi',
+    body: 'Hasil cocok dengan kelompok referensi pemutar musik yang memiliki ketidaksesuaian label. Periksa jenis perangkat sebelum menentukan penanganan.',
+  };
+  return null;
+}
 export function manualReason(result: Prediction) {
-  return NAMING_FAILURES.includes(result.cluster.id) ? NAMING_FAILURE_REASON : '';
+  return manualExplanation(result.cluster.id)?.body ?? '';
 }
 export function candidateLabel(result: Prediction) {
   return result.cluster.label ?? result.ranking?.[0]?.label ?? null;

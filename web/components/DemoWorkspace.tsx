@@ -5,7 +5,7 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import TriagePanel, { type ExploreHandler } from "./TriagePanel";
 import { createRecord, appendReview, parseStore, categoriesForLane, deleteRecord, type DemoRecord } from "@/lib/demo-records";
-import { automaticLane } from "@/lib/session";
+import { automaticLane, manualExplanation, NAMING_FAILURE_REASON } from "@/lib/session";
 import { LANES, fixed4, type LaneCode } from "@/lib/data";
 
 import { KEY, mutateStore } from "@/lib/demo-storage";
@@ -117,6 +117,7 @@ function RecordDetail({ record, onExplore, onReview, onDelete }: { record: DemoR
   const last = record.reviews.at(-1);
   const [category, setCategory] = useState(last && categoriesForLane(last.lane).includes(last.category) ? last.category : "");
   const [lane, setLane] = useState<LaneCode>(last?.lane ?? automaticLane(record.inference));
+  const explanation = manualExplanation(record.inference.cluster.id);
   const [status, setStatus] = useState<"review" | "done">(last?.status ?? "review");
   const [note, setNote] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -125,7 +126,7 @@ function RecordDetail({ record, onExplore, onReview, onDelete }: { record: DemoR
   const [error, setError] = useState("");
   return <article className="record-detail">
     <header><p className="spec num">{record.id}</p><h3>{record.fileName}</h3><p className="spec">Dicatat {date(record.createdAt)}</p></header>
-    <div className="record-inference"><h4>Hasil E-WISE</h4><p>C{record.inference.cluster.id} · {record.inference.cluster.label ?? "Belum dipastikan"}</p><p>Margin kecocokan {fixed4(record.inference.margin)} · Acuan {automaticLane(record.inference)}</p><p className="spec">{record.provenance === "backend version not supplied" ? "Versi model tidak disertakan backend." : `Versi dari backend: ${record.provenance}.`}</p><button className="btn" type="button" onClick={() => setError(onExplore(record.inference.cluster.id))}>Lihat kelompok referensi</button></div>
+    <div className="record-inference"><h4>Hasil E-WISE</h4><p>C{record.inference.cluster.id} · {record.inference.cluster.label ?? "Belum dipastikan"}</p><p>Margin kecocokan {fixed4(record.inference.margin)} · Acuan {automaticLane(record.inference)}</p>{automaticLane(record.inference) === "MR" && <p>{explanation && <strong>{explanation.title}. </strong>}{explanation?.body ?? NAMING_FAILURE_REASON}</p>}<p className="spec">{record.provenance === "backend version not supplied" ? "Versi model tidak disertakan backend." : `Versi dari backend: ${record.provenance}.`}</p><button className="btn" type="button" onClick={() => setError(onExplore(record.inference.cluster.id))}>Lihat kelompok referensi</button></div>
     <form className="record-form" onSubmit={async event => { event.preventDefault(); const err = await onReview({ category, lane, note, status }); setError(err); if (!err) { setNote(""); setMessage("Tersimpan."); } }}>
       <h4>{last ? "Tambah koreksi" : "Verifikasi"}</h4>
       <p className="hazard-note">Periksa bahaya fisik sesuai SOP fasilitas.</p>

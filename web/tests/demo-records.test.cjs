@@ -123,7 +123,7 @@ test('categories follow canonical lane taxonomy, with all choices and unresolved
  for (const lane of ['P1','P2','P3']) {
   assert.deepEqual(domain.categoriesForLane(lane), [...new Set(Object.values(CLUSTERS_META).filter(c=>c.lane===lane).map(c=>c.sub))]);
  }
- assert.deepEqual(domain.categoriesForLane('MR'), [domain.UNRESOLVED_CATEGORY,...new Set(Object.values(CLUSTERS_META).filter(c=>c.lane==='MR').map(c=>c.sub))]);
+ assert.deepEqual(domain.categoriesForLane('MR'), [domain.UNRESOLVED_CATEGORY, 'Perangkat campuran (perlu pemeriksaan)', 'Pemutar audio (kelas Player)']);
 });
 test('new category/lane pairs validated, old free text retained and correction appendable', () => {
  const r=domain.createRecord(prediction(),'legacy.jpg');
