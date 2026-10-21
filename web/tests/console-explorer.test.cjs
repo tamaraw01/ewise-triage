@@ -105,17 +105,28 @@ test('Result leads with route; hazards visible and technical margin collapsed', 
 test('C9/C11 explanations render in result and saved inference; other MR stays generic', () => {
   require.extensions['.ts'] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, filename);
   const session = require('../lib/session.ts');
+  const canonical = require('../lib/data.ts');
+  const priorSource = require('node:child_process').execFileSync('git', ['show', 'ae28b7a:web/lib/data.ts'], { encoding: 'utf8' });
+  const prior = {};
+  vm.runInNewContext(ts.transpileModule(priorSource, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, { exports: prior, require: () => ({ default: { points: [] } }) });
+  assert.equal(JSON.stringify(canonical.CLUSTERS_META), JSON.stringify(prior.CLUSTERS_META));
   for (const id of [9, 11, 4]) {
     const data = { status: 'review', margin: .001, threshold: .0297, cluster: { id, label: null, contested: false, route: 'MANUAL_REVIEW', handling: '' } };
     const explanation = session.manualExplanation(id);
     const expected = id === 9 ? 'Foto perlu diperiksa ulang' : id === 11 ? 'Kategori pemutar musik perlu dikonfirmasi' : session.NAMING_FAILURE_REASON;
-    const result = harness('components/TriagePanel.tsx', '\nexport { ResultCard };', { '@/lib/session': session }).result({ data, onReset() {} });
+    const result = harness('components/TriagePanel.tsx', '\nexport { ResultCard };', { '@/lib/session': session, '@/lib/data': canonical }).result({ data, onReset() {} });
+    assert.equal(text(nodes(result).find(n => n.props.id === 'result-device')), canonical.CLUSTERS_META[id].sub);
+    assert.ok(nodes(result).some(n => n.type === 'h4' && text(n) === 'Penanganan awal'));
     const record = { id: 'old-record', fileName: 'old.jpg', createdAt: '2026-10-01T00:00:00.000Z', inference: data, reviews: [], provenance: 'backend version not supplied' };
     const before = JSON.stringify(record);
     const saved = harness('components/DemoWorkspace.tsx', '\nexport { RecordDetail };', { '@/lib/session': session, '@/lib/demo-records': require('../lib/demo-records.ts') }).record({ record });
     for (const tree of [result, saved]) {
       assert.ok(text(tree).includes(id === 4 && tree === result ? 'Jenis barang belum pasti. Petugas perlu memeriksa sebelum memilih jalur.' : expected));
-      if (explanation) assert.ok(text(tree).includes(explanation.body));
+      if (explanation) {
+        assert.ok(nodes(tree).some(n => n.type === 'p' && text(n) === `${explanation.title}. ${explanation.body}`));
+        assert.ok(!nodes(tree).some(n => /^h[1-6]$/.test(n.type) && text(n).includes(explanation.title)));
+        assert.equal(text(tree).split(explanation.title).length - 1, 1);
+      }
       assert.match(text(tree), /MR/);
     }
     assert.equal(JSON.stringify(record), before);

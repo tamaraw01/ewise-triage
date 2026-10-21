@@ -366,9 +366,9 @@ function ResultCard({ data, onReset, onExplore }: { data: Prediction; onReset: (
             </div>
           </div>
           <div className="inspection-handling">
-            <h4 className="label">{!auto && explanation ? explanation.title : "Penanganan awal"}</h4>
+            <h4 className="label">Penanganan awal</h4>
             {auto && cMeta.hazard && <div className="hazard-note"><IconWarn /><span>{cMeta.hazard}</span></div>}
-            <p>{auto ? cMeta.action : reason}</p>
+            <p>{!auto && explanation ? `${explanation.title}. ${explanation.body}` : auto ? cMeta.action : reason}</p>
             {!auto && <p className="hazard-note">Jangan bongkar, pecahkan, atau cacah sebelum diperiksa.</p>}
             <small className="dim">Konfirmasi fisik dan SOP fasilitas tetap wajib.</small>
           </div>

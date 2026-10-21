@@ -5,7 +5,7 @@ export const UNRESOLVED_CATEGORY = 'Belum dipastikan';
 export function categoriesForLane(lane: LaneCode): string[] {
   return [...new Set([
     ...(lane === 'MR' ? [UNRESOLVED_CATEGORY] : []),
-    ...Object.values(CLUSTERS_META).filter(cluster => cluster.lane === lane).map(cluster => cluster.id === 9 ? 'Perangkat campuran (perlu pemeriksaan)' : cluster.sub),
+    ...Object.values(CLUSTERS_META).filter(cluster => cluster.lane === lane).map(cluster => cluster.sub),
   ])];
 }
 
