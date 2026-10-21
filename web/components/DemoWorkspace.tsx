@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import TriagePanel, { type ExploreHandler } from "./TriagePanel";
-import { createRecord, appendReview, parseStore, type DemoRecord } from "@/lib/demo-records";
+import { createRecord, appendReview, parseStore, categoriesForLane, deleteRecord, type DemoRecord } from "@/lib/demo-records";
 import { automaticLane } from "@/lib/session";
 import { LANES, fixed4, type LaneCode } from "@/lib/data";
 
@@ -74,6 +74,7 @@ export default function DemoWorkspace({ active, onExplore }: { active: boolean; 
         const record = createRecord(prediction, fileName);
         await persist(rows => [record, ...rows]);
         setSelected(record.id);
+        if (automaticLane(prediction) === "MR") { setFilter("all"); setQuery(""); }
         setError("");
         return "";
       } catch (e) { return e instanceof Error ? e.message : "Gagal menyimpan. Periksa ruang penyimpanan browser."; }
@@ -81,7 +82,7 @@ export default function DemoWorkspace({ active, onExplore }: { active: boolean; 
     <section className="demo-records" ref={root} aria-labelledby="records-title">
       <div className="record-heading"><div><p className="spec">Ruang kerja lokal</p><h2 id="records-title">Catatan barang</h2></div><div className="record-actions">
         <button className="btn" type="button" onClick={() => run(() => { const raw = localStorage.getItem(KEY); if (!raw) throw new Error("Belum ada catatan untuk diekspor."); download(raw); })}>Ekspor JSON</button>
-        <button className="btn" type="button" onClick={() => setConfirmClear(true)}>Hapus catatan</button>
+        <button className="btn" type="button" onClick={() => setConfirmClear(true)}>Hapus semua catatan</button>
       </div></div>
       {confirmClear && <div className="record-confirm" role="group" aria-label="Konfirmasi hapus" onKeyDown={event => { if (event.key === "Escape") setConfirmClear(false); }}><p>Hapus seluruh catatan demo di browser ini? Tindakan tidak dapat dibatalkan. Ekspor dahulu jika masih diperlukan.</p><button className="btn" type="button" onClick={() => setConfirmClear(false)}>Batal</button><button className="btn" type="button" onClick={() => run(async () => { await persist(null); setSelected(""); setConfirmClear(false); })}>Ya, hapus seluruh catatan</button></div>}
       {error && <div className="record-error" role="alert"><p>{error}</p><button className="btn" type="button" onClick={load}>Muat ulang catatan</button></div>}
@@ -89,7 +90,7 @@ export default function DemoWorkspace({ active, onExplore }: { active: boolean; 
       {ready && <>
         <dl className="record-counts"><div><dt>Barang dicatat</dt><dd>{records.length}</dd></div><div><dt>Menunggu pemeriksaan</dt><dd>{records.length - done - review}</dd></div><div><dt>Perlu tinjauan</dt><dd>{review}</dd></div><div><dt>Selesai diperiksa</dt><dd>{done}</dd></div></dl>
         <div className="record-filters"><label>Cari barang<input value={query} onChange={event => setQuery(event.target.value)} placeholder="Nama berkas, kategori, atau ID" /></label><label>Status<select value={filter} onChange={event => setFilter(event.target.value)}><option value="all">Semua status</option><option value="pending">Menunggu pemeriksaan</option><option value="review">Perlu tinjauan</option><option value="done">Selesai diperiksa</option></select></label></div>
-        {!records.length ? <div className="record-empty"><h3>Belum ada barang dicatat</h3><p>Analisis foto, lalu pilih “Catat barang ini”. Hasil mesin tetap tersimpan meskipun keputusan dikoreksi.</p></div> : <div className="record-workbench"><div className="record-list" aria-label="Daftar barang">{!visible.length && <p>Tidak ada barang sesuai pencarian.</p>}{visible.map(record => <button type="button" key={record.id} aria-pressed={selected === record.id} onClick={() => setSelected(record.id)}><strong>{record.reviews.at(-1)?.category ?? record.fileName}</strong><span>{record.reviews.at(-1)?.status === "done" ? "Selesai diperiksa" : record.reviews.length ? "Perlu tinjauan" : "Menunggu pemeriksaan"}</span><small>{date(record.createdAt)} · {record.id.slice(0, 8)}</small></button>)}</div>{current ? <RecordDetail key={`${current.id}:${current.reviews.at(-1)?.id ?? "new"}`} record={current} onExplore={onExplore} onReview={async input => { try { await persist(rows => {
+        {!records.length ? <div className="record-empty"><h3>Belum ada barang dicatat</h3><p>Analisis foto, lalu pilih “Catat barang ini”.</p></div> : <div className="record-workbench"><div className="record-list" aria-label="Daftar barang">{!visible.length && <p>Tidak ada barang sesuai pencarian.</p>}{visible.map(record => <button type="button" key={record.id} aria-pressed={selected === record.id} onClick={() => setSelected(record.id)}><strong>{record.reviews.at(-1)?.category ?? record.fileName}</strong><span>{record.reviews.at(-1)?.status === "done" ? "Selesai diperiksa" : record.reviews.length ? "Perlu tinjauan" : "Menunggu pemeriksaan"}</span><small>{date(record.createdAt)} · {record.id.slice(0, 8)}</small></button>)}</div>{current ? <RecordDetail key={`${current.id}:${current.reviews.at(-1)?.id ?? "new"}`} record={current} onExplore={onExplore} onDelete={async () => { try { await persist(rows => deleteRecord(rows, current)); setSelected(""); setError(""); return ""; } catch (e) { const message = e instanceof Error ? e.message : "Catatan belum dihapus."; setError(message); return message; } }} onReview={async input => { try { await persist(rows => {
           const latest = rows.find(row => row.id === current.id);
           if (!latest || latest.reviews.at(-1)?.id !== current.reviews.at(-1)?.id) {
             load(); throw new Error("Keputusan berubah di tab lain. Form telah dimuat ulang; periksa lalu ulangi.");
@@ -112,27 +113,32 @@ export default function DemoWorkspace({ active, onExplore }: { active: boolean; 
   </>;
 }
 
-function RecordDetail({ record, onExplore, onReview }: { record: DemoRecord; onExplore: ExploreHandler; onReview: (input: { category: string; lane: LaneCode; note: string; status: "review" | "done" }) => Promise<string> }) {
+function RecordDetail({ record, onExplore, onReview, onDelete }: { record: DemoRecord; onExplore: ExploreHandler; onDelete: () => Promise<string>; onReview: (input: { category: string; lane: LaneCode; note: string; status: "review" | "done" }) => Promise<string> }) {
   const last = record.reviews.at(-1);
-  const [category, setCategory] = useState(last?.category ?? "");
+  const [category, setCategory] = useState(last && categoriesForLane(last.lane).includes(last.category) ? last.category : "");
   const [lane, setLane] = useState<LaneCode>(last?.lane ?? automaticLane(record.inference));
   const [status, setStatus] = useState<"review" | "done">(last?.status ?? "review");
   const [note, setNote] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   return <article className="record-detail">
     <header><p className="spec num">{record.id}</p><h3>{record.fileName}</h3><p className="spec">Dicatat {date(record.createdAt)}</p></header>
-    <div className="record-inference"><h4>Hasil mesin tersimpan</h4><p>C{record.inference.cluster.id} · {record.inference.cluster.label ?? "Belum dipastikan"}</p><p>Margin kecocokan {fixed4(record.inference.margin)} · Acuan {automaticLane(record.inference)}</p><p className="spec">{record.provenance === "backend version not supplied" ? "Versi model tidak disertakan backend." : `Versi dari backend: ${record.provenance}.`} Catatan tidak memperbarui model atau peta referensi.</p><button className="btn" type="button" onClick={() => setError(onExplore(record.inference.cluster.id))}>Lihat kelompok referensi</button></div>
-    <form className="record-form" onSubmit={async event => { event.preventDefault(); const err = await onReview({ category, lane, note, status }); setError(err); if (!err) { setNote(""); setMessage("Keputusan tersimpan. Riwayat sebelumnya tetap ada."); } }}>
-      <h4>{last ? "Tambah koreksi" : "Pemeriksaan manusia"}</h4><p className="spec">Gunakan hasil pemeriksaan fisik. Nama kategori boleh di luar referensi; nama baru tidak membuat cluster baru.</p>
-      <label>Kategori hasil pemeriksaan<input required maxLength={120} value={category} onChange={event => setCategory(event.target.value)} placeholder="Contoh: magic com atau belum diketahui" /></label>
-      <label>Acuan penanganan<select value={lane} onChange={event => { const next = event.target.value as LaneCode; setLane(next); if (next === "MR") setStatus("review"); }}>{(Object.keys(LANES) as LaneCode[]).map(code => <option key={code} value={code}>{code} · {LANES[code].desc}</option>)}</select></label>
-      <label>Status pemeriksaan<select value={status} onChange={event => setStatus(event.target.value as "review" | "done")}><option value="review">Perlu tinjauan</option><option value="done" disabled={lane === "MR"}>Selesai diperiksa</option></select></label>
-      <label>Temuan dan alasan keputusan<textarea required maxLength={2000} value={note} onChange={event => setNote(event.target.value)} rows={3} /></label>
-      <p className="hazard-note">Ikuti SOP fasilitas dan periksa bahaya fisik. Foto tidak memastikan komposisi atau keamanan barang.</p>
+    <div className="record-inference"><h4>Hasil E-WISE</h4><p>C{record.inference.cluster.id} · {record.inference.cluster.label ?? "Belum dipastikan"}</p><p>Margin kecocokan {fixed4(record.inference.margin)} · Acuan {automaticLane(record.inference)}</p><p className="spec">{record.provenance === "backend version not supplied" ? "Versi model tidak disertakan backend." : `Versi dari backend: ${record.provenance}.`}</p><button className="btn" type="button" onClick={() => setError(onExplore(record.inference.cluster.id))}>Lihat kelompok referensi</button></div>
+    <form className="record-form" onSubmit={async event => { event.preventDefault(); const err = await onReview({ category, lane, note, status }); setError(err); if (!err) { setNote(""); setMessage("Tersimpan."); } }}>
+      <h4>{last ? "Tambah koreksi" : "Verifikasi"}</h4>
+      <p className="hazard-note">Periksa bahaya fisik sesuai SOP fasilitas.</p>
+      <label>Acuan penanganan<select value={lane} onChange={event => { const next = event.target.value as LaneCode; setLane(next); if (!categoriesForLane(next).includes(category)) setCategory(""); if (next === "MR") setStatus("review"); }}>{(Object.keys(LANES) as LaneCode[]).map(code => <option key={code} value={code}>{code} · {LANES[code].desc}</option>)}</select></label>
+      <label>Kategori<select required value={category} onChange={event => setCategory(event.target.value)}><option value="">Pilih kategori</option>{categoriesForLane(lane).map(value => <option key={value} value={value}>{value}</option>)}</select></label>
+      <label>Status<select value={status} onChange={event => setStatus(event.target.value as "review" | "done")}><option value="review">Ditahan</option><option value="done" disabled={lane === "MR"}>Selesai</option></select></label>
+      <label>Catatan<textarea required maxLength={2000} value={note} onChange={event => setNote(event.target.value)} rows={3} /></label>
+      <button className="btn" type="button" disabled={!note} onClick={() => setNote("")}>Kosongkan catatan</button>
       <button className="btn btn-primary" type="submit">{last ? "Simpan koreksi" : "Simpan pemeriksaan"}</button>
       {error && <p role="alert">{error}</p>}<p role="status">{message}</p>
     </form>
-    <div className="record-history"><h4>Riwayat keputusan</h4>{!record.reviews.length && <p>Belum diperiksa. Hasil mesin bukan keputusan akhir.</p>}<ol>{record.reviews.slice().reverse().map(entry => <li key={entry.id}><strong>{entry.category} · {entry.lane}</strong><span>{entry.status === "done" ? "Selesai diperiksa" : "Perlu tinjauan"}</span><p>{entry.note}</p><small>{date(entry.at)} · Sesi demo (tanpa akun)</small></li>)}</ol><details><summary>Snapshot inferensi</summary><pre>{JSON.stringify(record.inference, null, 2)}</pre></details></div>
+    <button className="btn" type="button" onClick={() => setConfirmDelete(true)}>Hapus catatan barang</button>
+    {confirmDelete && <div className="record-confirm" role="group" aria-label="Konfirmasi hapus catatan barang" onKeyDown={event => { if (event.key === "Escape" && !deleting) setConfirmDelete(false); }}><p>Hapus catatan {record.fileName} beserta riwayatnya? Tindakan tidak dapat dibatalkan. Catatan barang lain tetap tersimpan.</p><button className="btn" type="button" disabled={deleting} onClick={() => setConfirmDelete(false)}>Batal</button><button className="btn" type="button" disabled={deleting} onClick={async () => { setDeleting(true); setError(await onDelete()); setDeleting(false); }}>Ya, hapus catatan barang</button></div>}
+    <div className="record-history"><h4>Riwayat</h4>{!record.reviews.length && <p>Belum ada riwayat.</p>}<ol>{record.reviews.slice().reverse().map(entry => <li key={entry.id}><strong>{entry.category} · {entry.lane}</strong><span>{entry.status === "done" ? "Selesai" : "Ditahan"}</span><p>{entry.note}</p><small>{date(entry.at)} · Sesi demo (tanpa akun)</small></li>)}</ol><details><summary>Snapshot inferensi</summary><pre>{JSON.stringify(record.inference, null, 2)}</pre></details></div>
   </article>;
 }

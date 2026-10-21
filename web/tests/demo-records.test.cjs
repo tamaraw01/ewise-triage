@@ -2,10 +2,10 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const ts = require('typescript');
-require.extensions['.ts'] = (module, filename) => module._compile(ts.transpileModule(require('node:fs').readFileSync(filename, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, filename);
+require.extensions['.ts'] = (module, filename) => module._compile(ts.transpileModule(require('node:fs').readFileSync(filename, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, filename);
 const domain = require('../lib/demo-records.ts');
 const prediction = () => ({ status: 'classified', margin: .12, threshold: .0297, cluster: { id: 4, label: 'Battery', contested: false, route: 'HAZARD', handling: 'Physical check' }, ranking: [{ cluster: 4, label: 'Battery', similarity: -.2 }] });
-const input = { category: 'Baterai', lane: 'P1', note: 'Diperiksa fisik', status: 'done' };
+const input = { category: 'Baterai (ponsel/laptop)', lane: 'P1', note: 'Diperiksa fisik', status: 'done' };
 const clone = value => JSON.parse(JSON.stringify(value));
 const store = record => ({ version: 1, records: [record] });
 
@@ -38,7 +38,7 @@ test('supplied model version survives persistence without fabrication', () => {
 test('review appends history, preserves original inference and prior records', () => {
   const r = domain.createRecord(prediction(), 'a.jpg');
   const first = domain.appendReview(r, input);
-  const second = domain.appendReview(first, { ...input, lane: 'MR', status: 'review', note: 'Periksa ulang' });
+  const second = domain.appendReview(first, { ...input, category: domain.UNRESOLVED_CATEGORY, lane: 'MR', status: 'review', note: 'Periksa ulang' });
   assert.equal(r.reviews.length, 0); assert.equal(first.reviews.length, 1);
   assert.equal(second.reviews.length, 2); assert.deepEqual(second.reviews[0], first.reviews[0]);
   assert.equal(second.inference, r.inference);
@@ -58,7 +58,7 @@ test('clock rollback preserves real timestamps and append order across reload', 
  now = '2026-10-18T11:00:00.000Z';
  const first = domain.appendReview(r, input);
  now = '2026-10-17T10:00:00.000Z';
- const second = domain.appendReview(first, {...input, lane:'MR', status:'review'});
+ const second = domain.appendReview(first, {...input, category:domain.UNRESOLVED_CATEGORY, lane:'MR', status:'review'});
  assert.deepEqual(second.reviews.map(r => r.at), ['2026-10-18T11:00:00.000Z', now]);
  const loaded = domain.parseStore(JSON.stringify(store(second))).records[0];
  assert.equal(loaded.createdAt, '2026-10-19T12:00:00.000Z');
@@ -105,7 +105,7 @@ test('record, review and string bounds accept ceiling and reject overflow', () =
   assert.doesNotThrow(() => domain.createRecord(prediction(), 'x'.repeat(255)));
   for (const name of ['', ' ', 'x'.repeat(256)]) assert.throws(() => domain.createRecord(prediction(), name));
   let r = domain.createRecord(prediction(), 'a.jpg');
-  assert.doesNotThrow(() => domain.appendReview(r, { ...input, category: 'x'.repeat(200), note: 'x'.repeat(2000) }));
+  assert.doesNotThrow(() => domain.appendReview(r, { ...input, note: 'x'.repeat(2000) }));
   for (const patch of [{ category: 'x'.repeat(201) }, { note: 'x'.repeat(2001) }]) assert.throws(() => domain.appendReview(r, { ...input, ...patch }));
   for (let i = 0; i < 100; i++) r = domain.appendReview(r, input);
   assert.equal(r.reviews.length, 100); assert.throws(() => domain.appendReview(r, input));
@@ -115,4 +115,27 @@ test('record, review and string bounds accept ceiling and reject overflow', () =
   assert.equal(domain.parseStore(full).records.length, 100);
   full.records.push(domain.createRecord(prediction(), 'a.jpg'));
   assert.throws(() => domain.parseStore(full));
+});
+
+
+test('categories follow canonical lane taxonomy, with all choices and unresolved in MR', () => {
+ const {CLUSTERS_META}=require('../lib/data.ts');
+ for (const lane of ['P1','P2','P3']) {
+  assert.deepEqual(domain.categoriesForLane(lane), [...new Set(Object.values(CLUSTERS_META).filter(c=>c.lane===lane).map(c=>c.sub))]);
+ }
+ assert.deepEqual(domain.categoriesForLane('MR'), [domain.UNRESOLVED_CATEGORY,...new Set(Object.values(CLUSTERS_META).filter(c=>c.lane==='MR').map(c=>c.sub))]);
+});
+test('new category/lane pairs validated, old free text retained and correction appendable', () => {
+ const r=domain.createRecord(prediction(),'legacy.jpg');
+ for (const patch of [{category:'magic com'}, {lane:'P2'}, {category:domain.UNRESOLVED_CATEGORY}]) {
+  assert.throws(()=>domain.appendReview(r,{...input,...patch}),/kategori/);
+ }
+ assert.doesNotThrow(()=>domain.appendReview(r,{...input,lane:'MR',status:'review',category:domain.UNRESOLVED_CATEGORY}));
+ const legacy=clone(domain.appendReview(r,input));
+ legacy.reviews[0].category='magic com';
+ const loaded=domain.parseStore(store(legacy)).records[0];
+ assert.equal(loaded.reviews[0].category,'magic com');
+ const corrected=domain.appendReview(loaded,input);
+ assert.equal(corrected.reviews[0].category,'magic com');
+ assert.deepEqual(corrected.inference,loaded.inference);
 });

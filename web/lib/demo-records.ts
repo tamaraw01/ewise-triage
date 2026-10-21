@@ -1,5 +1,21 @@
 import { parsePrediction, type Prediction } from './session';
-import type { LaneCode } from './data';
+import { CLUSTERS_META, type LaneCode } from './data';
+
+export const UNRESOLVED_CATEGORY = 'Belum dipastikan';
+export function categoriesForLane(lane: LaneCode): string[] {
+  return [...new Set([
+    ...(lane === 'MR' ? [UNRESOLVED_CATEGORY] : []),
+    ...Object.values(CLUSTERS_META).filter(cluster => cluster.lane === lane).map(cluster => cluster.sub),
+  ])];
+}
+
+export function deleteRecord(rows: readonly DemoRecord[], expected: DemoRecord): readonly DemoRecord[] {
+  const latest = rows.find(row => row.id === expected.id);
+  if (!latest || latest.reviews.at(-1)?.id !== expected.reviews.at(-1)?.id) {
+    throw new Error('Catatan berubah di tab lain. Muat ulang dan periksa sebelum menghapus.');
+  }
+  return rows.filter(row => row.id !== expected.id);
+}
 
 export const MAX_RECORDS = 100;
 export const MAX_REVIEWS = 100;
@@ -94,6 +110,9 @@ export function createRecord(value: Prediction, fileName: string): DemoRecord {
 export function appendReview(value: DemoRecord, input: ReviewInput): DemoRecord {
   const original = record(value);
   const fields = reviewInput(input);
+  if (!categoriesForLane(fields.lane).includes(fields.category)) {
+    throw new Error('Pilih kategori yang sesuai acuan penanganan.');
+  }
   if (original.reviews.length >= MAX_REVIEWS) invalid();
   const at = new Date().toISOString();
   const review = { ...fields, id: globalThis.crypto.randomUUID(), at, actor: DEMO_ACTOR };
