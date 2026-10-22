@@ -70,8 +70,17 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
   const request = useRef<AbortController | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraPending, setCameraPending] = useState(false);
+  const [autoCapture, setAutoCapture] = useState(false);
+  const automatic = useRef(false);
+  const capturing = useRef(false);
+  const [resultFileName, setResultFileName] = useState("");
+  const resultRef = useRef<Prediction | null>(null);
+  useEffect(() => { resultRef.current = result; }, [result]);
 
   const releaseCamera = useCallback(() => {
+    if (automatic.current) request.current?.abort();
+    automatic.current = false;
+    capturing.current = false;
     cameraRequest.current += 1;
     cameraStarting.current = false;
     streamRef.current?.getTracks().forEach(track => track.stop());
@@ -80,16 +89,27 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
   }, []);
 
   const stopCamera = useCallback(() => {
+    if (automatic.current) {
+      request.current?.abort();
+      setPhase(resultRef.current ? "done" : "idle");
+      if (!resultRef.current) setFile(null);
+    }
     releaseCamera();
+    setAutoCapture(false);
     setCameraActive(false);
     setCameraPending(false);
   }, [releaseCamera]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Stop external camera tracks and sync controls when this tab becomes hidden.
     if (!active) stopCamera();
-    return releaseCamera;
-  }, [active, releaseCamera, stopCamera]);
+  }, [active, stopCamera]);
+  useEffect(() => releaseCamera, [releaseCamera]);
+
+  useEffect(() => {
+    const hide = () => { if (document.hidden) stopCamera(); };
+    document.addEventListener("visibilitychange", hide);
+    return () => document.removeEventListener("visibilitychange", hide);
+  }, [stopCamera]);
   useEffect(() => () => request.current?.abort(), []);
   useEffect(() => () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -145,6 +165,7 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
         return;
       }
       streamRef.current = stream;
+      stream.getVideoTracks().forEach(track => track.addEventListener("ended", stopCamera, { once: true }));
       setCameraActive(true);
     } catch {
       if (id !== cameraRequest.current) return;
@@ -158,24 +179,67 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
     }
   };
 
-  // Jepret frame dari video feed, jadikan File, biarkan auto-submit yang jalan
-  const capturePhoto = () => {
-    if (!videoRef.current || !cameraActive || !videoRef.current.videoWidth || !videoRef.current.videoHeight) return;
+  const capturePhoto = useCallback(() => {
+    if (capturing.current || !videoRef.current || !cameraActive || !videoRef.current.videoWidth || !videoRef.current.videoHeight) return;
+    capturing.current = true;
     const id = cameraRequest.current;
 
     const canvas = document.createElement("canvas");
     canvas.width = videoRef.current.videoWidth;
     canvas.height = videoRef.current.videoHeight;
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const failCapture = (message: string) => {
+      stopCamera();
+      setError(message);
+      setPhase("error");
+    };
+    if (!ctx) { failCapture("Foto kamera gagal dibuat."); return; }
+    try {
+      ctx.drawImage(videoRef.current, 0, 0);
+      canvas.toBlob((blob) => {
+        if (id !== cameraRequest.current) return;
+        capturing.current = false;
+        if (!blob) { failCapture("Foto kamera gagal dibuat."); return; }
+        const selected = new File([blob], "capture.jpg", { type: "image/jpeg" });
+        const validationError = validateFile(selected);
+        if (validationError) { failCapture(validationError); return; }
+        if (!automatic.current) stopCamera();
+        saveGeneration.current++;
+        setSaved(false);
+        setSaveError("");
+        setError("");
+        setFile(selected);
+        setPreviewUrl(URL.createObjectURL(selected));
+        setPhase("idle");
+      }, "image/jpeg", 0.9);
+    } catch { failCapture("Foto kamera gagal dibuat."); }
+  }, [cameraActive, stopCamera]);
 
-    ctx.drawImage(videoRef.current, 0, 0);
+  useEffect(() => {
+    if (!autoCapture || !cameraActive || !active || (phase !== "done" && !(phase === "idle" && !file))) return;
+    const video = videoRef.current;
+    const frame = requestAnimationFrame(capturePhoto);
+    video?.addEventListener("loadeddata", capturePhoto);
+    return () => { cancelAnimationFrame(frame); video?.removeEventListener("loadeddata", capturePhoto); };
+  }, [autoCapture, cameraActive, active, phase, file, capturePhoto]);
 
-    canvas.toBlob((blob) => {
-      if (!blob || id !== cameraRequest.current) return;
-      selectFile(new File([blob], "capture.jpg", { type: "image/jpeg" }));
-    }, "image/jpeg", 0.9);
-  };
+  const saveResult = useCallback(async (prediction: Prediction, fileName: string) => {
+    if (!onSave || saving.current || saved) return;
+    saving.current = true;
+    const generation = saveGeneration.current;
+    try {
+      const message = await onSave(prediction, fileName);
+      if (generation !== saveGeneration.current) return;
+      setSaveError(message);
+      if (!message) setSaved(true);
+      else if (automatic.current) stopCamera();
+    } catch {
+      if (generation === saveGeneration.current) {
+        setSaveError("Barang belum tersimpan. Coba lagi.");
+        if (automatic.current) stopCamera();
+      }
+    } finally { saving.current = false; }
+  }, [onSave, saved, stopCamera]);
 
   const submitAnalysis = useCallback(async () => {
     if (!file) return;
@@ -184,20 +248,24 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
     const controller = new AbortController();
     request.current = controller;
     setPhase("loading");
-    setResult(null);
+    if (!automatic.current) setResult(null);
     setError("");
     try {
       const data = await submitToBackend(file, controller.signal);
       if (controller.signal.aborted) return;
       parsePrediction(data);
       setResult(data as Prediction);
+      setResultFileName(file.name);
+      if (automaticLane(data as Prediction) === "MR") await saveResult(data as Prediction, file.name);
+      if (controller.signal.aborted) return;
       setPhase("done");
     } catch (err: unknown) {
       if (controller.signal.aborted) return;
       setError(err instanceof Error ? err.message : "Gagal menghubungi backend");
+      stopCamera();
       setPhase("error");
     }
-  }, [file]);
+  }, [file, saveResult, stopCamera]);
 
   // Auto-submit saat file terisi dari DragDrop / Browse / Capture Kamera
   useEffect(() => {
@@ -218,7 +286,7 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
   const busy = phase === "loading";
 
   return (
-    <div className={`console${phase === "done" && result ? " inspection-desk" : ""}`}>
+    <div className={`console${result && (phase === "done" || autoCapture) ? " inspection-desk" : ""}`}>
       <p className="sr-only" role="status" aria-live="polite">{busy ? "Citra dikirim, menunggu backend." : phase === "done" ? "Hasil triase tersedia." : phase === "error" ? `Gagal: ${error}` : ""}</p>
 
       <section className="panel capture-panel" aria-labelledby="input-title" onDrop={onDrop} onDragOver={onDragOver}>
@@ -228,9 +296,21 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
             <div className="camera">
               <video ref={videoRef} autoPlay playsInline muted aria-label="Pratinjau kamera" />
               <div className="camera-actions">
-                <button type="button" className="btn btn-primary" onClick={capturePhoto}>Ambil foto</button>
-                <button type="button" className="btn" onClick={stopCamera}>Batal</button>
+                {autoCapture ? <button type="button" className="btn btn-primary" onClick={stopCamera}>Hentikan otomatis</button> : <>
+                  <button type="button" className="btn btn-primary" onClick={capturePhoto} disabled={busy}>Ambil foto</button>
+                  <button type="button" className="btn" disabled={busy} onClick={() => {
+                    automatic.current = true;
+                    setAutoCapture(true);
+                    setError("");
+                    setPhase(result ? "done" : "idle");
+                    if (!result) setFile(null);
+                  }}>Mulai otomatis</button>
+                  <button type="button" className="btn" onClick={stopCamera}>Batal</button>
+                </>}
               </div>
+              <p className="scan-note">Foto otomatis dikirim ke backend Hugging Face.</p>
+              {autoCapture && <p className="scan-note" role="status">{busy ? "Menunggu prediksi. Foto berikutnya setelah hasil tersedia." : "Pengambilan otomatis aktif."}</p>}
+
             </div>
           ) : (
             <div className={`drop${previewUrl ? " has-image" : ""}`}>
@@ -254,7 +334,7 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
         </div>
       </section>
 
-      {phase !== "done" && <section className="panel verdict-panel" aria-labelledby="verdict-title" aria-busy={busy}>
+      {phase !== "done" && !(autoCapture && result) && <section className="panel verdict-panel" aria-labelledby="verdict-title" aria-busy={busy}>
         <div className="panel-h"><h2 id="verdict-title">Hasil triase</h2></div>
         <div className="panel-b">
           {phase === "idle" && !file && <LaneLegend />}
@@ -279,22 +359,10 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
           )}
         </div>
       </section>}
-      {phase === "done" && result && <ResultCard data={result} onReset={reset} onExplore={onExplore} />}
-      {phase === "done" && result && onSave && <div className="demo-save">
-        <button type="button" className="btn btn-primary" disabled={saved} onClick={async () => {
-          if (saving.current) return;
-          saving.current = true;
-          const generation = saveGeneration.current;
-          try {
-            const message = await onSave(result, file?.name ?? "Foto barang");
-            if (generation !== saveGeneration.current) return;
-            setSaveError(message);
-            if (!message) setSaved(true);
-          } catch {
-            if (generation === saveGeneration.current) setSaveError("Barang belum tersimpan. Coba lagi.");
-          } finally { saving.current = false; }
-        }}>{saved ? "Barang sudah dicatat" : "Catat barang ini"}</button>
-        <p role="status">{saved ? "Tersimpan di browser ini. Lanjutkan pemeriksaan di catatan demo." : "Satu hasil menjadi satu barang. Foto tidak disimpan dalam catatan."}</p>
+      {result && (phase === "done" || autoCapture) && <ResultCard data={result} onReset={reset} onExplore={onExplore} />}
+      {result && (phase === "done" || autoCapture) && onSave && <div className="demo-save">
+        <button type="button" className="btn btn-primary" disabled={saved || autoCapture || busy} onClick={() => saveResult(result, resultFileName || file?.name || "Foto barang")}>{saved ? "Barang sudah dicatat" : "Catat barang ini"}</button>
+        <p role="status">{saved ? "Tersimpan di browser ini." : "Foto tidak ikut disimpan."}</p>
         {saveError && <p role="alert">{saveError}</p>}
       </div>}
     </div>
