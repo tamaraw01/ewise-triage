@@ -10,13 +10,14 @@ function harness(file, expose = '', overrides = {}) {
   const values = [];
   let cursor = 0;
   const frames = [];
+  const callbacks = [];
   let focused = '';
   const clusters = [{ id: 0 }, { id: 4 }, { id: 9 }, { id: 11 }];
   const metadata = { 4: { name: 'Battery', sub: 'Baterai', lane: 'P1', hazard: 'Jangan tusuk baterai.', action: 'Pisahkan baterai.' } };
   const node = (type, props) => ({ type, props: props || {} });
   const react = {
     useState(initial) { const index = cursor++; if (!(index in values)) values[index] = initial; return [values[index], value => { values[index] = value; }]; },
-    useRef: () => ({ current: null }), useEffect() {}, useCallback: fn => fn,
+    useRef(initial) { const index = cursor++; if (!(index in values)) values[index] = { current: initial }; return values[index]; }, useEffect() {}, useCallback: fn => { callbacks.push(fn); return fn; },
   };
   const modules = {
     react,
@@ -31,14 +32,15 @@ function harness(file, expose = '', overrides = {}) {
       manualExplanation: () => null,
       manualReason: data => [9, 11].includes(data.cluster.id) ? 'Jenis perangkat belum dapat dipastikan.' : '',
     },
+    '@/lib/demo-records': { MAX_RECORDS: 300 },
     '@/data/meta.json': { dataset_images_used: 2660 },
   };
   const code = ts.transpileModule(fs.readFileSync(path.join(__dirname, '..', file), 'utf8') + expose, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
   }).outputText;
   const exports = {};
-  vm.runInNewContext(code, { exports, require: id => overrides[id] || modules[id] || { default: id }, requestAnimationFrame: fn => frames.push(fn), document: { getElementById: id => ({ focus: () => { focused = id; } }) } });
-  return { render: (props = {}) => { cursor = 0; return exports.default(props); }, result: props => { cursor = 0; return exports.ResultCard(props); }, record: props => { cursor = 0; return exports.RecordDetail(props); }, frames, values, focused: () => focused };
+  vm.runInNewContext(code, { exports, AbortController, require: id => overrides[id] || modules[id] || { default: id }, requestAnimationFrame: fn => frames.push(fn), document: { getElementById: id => ({ focus: () => { focused = id; } }) } });
+  return { render: (props = {}) => { cursor = 0; return exports.default(props); }, result: props => { cursor = 0; return exports.ResultCard(props); }, record: props => { cursor = 0; return exports.RecordDetail(props); }, frames, values, callbacks, focused: () => focused };
 }
 function nodes(tree) {
   if (!tree || typeof tree !== 'object') return [];
@@ -50,6 +52,96 @@ function text(tree) {
   if (typeof tree !== 'object') return String(tree);
   return text(tree.props?.text) + text(tree.props?.children);
 }
+
+test('all successful predictions record automatically once', async () => {
+  for (const status of ['review', 'classified']) {
+    const data = { status, cluster: { id: 4, label: 'Battery' } };
+    const app = harness('components/TriagePanel.tsx', '', {
+      '@/lib/api': { submitToBackend: async () => data },
+      '@/lib/session': { parsePrediction: value => value, automaticLane: value => value.status === 'review' ? 'MR' : 'P1' },
+    });
+    const calls = [];
+    const onSave = async (...args) => { calls.push(args); return ''; };
+    app.render({ onSave });
+    app.values[5] = { name: 'battery.jpg' };
+    app.callbacks.length = 0;
+    app.render({ onSave });
+    await app.callbacks.at(-1)();
+    assert.equal(calls.length, 1);
+    const tree = app.render({ onSave });
+    const button = nodes(tree).find(n => n.type === 'button' && /Catat barang ini|Barang sudah dicatat/.test(text(n)));
+    assert.equal(button.props.disabled, true);
+    if (status === 'review') {
+      assert.equal(calls[0][1], 'battery.jpg');
+      await button.props.onClick();
+      assert.equal(calls.length, 1);
+    } else {
+      await button.props.onClick();
+      assert.equal(calls.length, 1);
+    }
+  }
+});
+
+test('reset allows file B save while file A is pending; old completion keeps B locked', async () => {
+  const data = { status: 'review', cluster: { id: 4, label: 'Battery' } };
+  const app = harness('components/TriagePanel.tsx', '', {
+    '@/lib/api': { submitToBackend: async () => data },
+    '@/lib/session': { parsePrediction: value => value, automaticLane: () => 'MR' },
+  });
+  const calls = [];
+  const pending = [];
+  const onSave = (_prediction, name) => {
+    calls.push(name);
+    return new Promise(resolve => pending.push(resolve));
+  };
+  app.render({ onSave });
+  app.values[5] = { name: 'fixture-A.jpg' };
+  app.callbacks.length = 0;
+  app.render({ onSave });
+  const first = app.callbacks.at(-1)();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(calls, ['fixture-A.jpg']);
+  app.callbacks[2](); // reset invalidates A, even with its save pending.
+  app.values[5] = { name: 'fixture-B.jpg' };
+  app.callbacks.length = 0;
+  app.render({ onSave });
+  const saveB = app.callbacks.at(-2);
+  const second = app.callbacks.at(-1)();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(calls, ['fixture-A.jpg', 'fixture-B.jpg']);
+  pending[0]('stale fixture error');
+  await first;
+  assert.equal(app.values[0], false);
+  assert.equal(app.values[3], '');
+  await saveB(data, 'fixture-B.jpg');
+  assert.deepEqual(calls, ['fixture-A.jpg', 'fixture-B.jpg']);
+  pending[1]('');
+  await second;
+  assert.equal(app.values[0], true);
+});
+
+test('MR save failure keeps result available and allows retry', async () => {
+  const data = { status: 'review', cluster: { id: 4, label: 'Battery' } };
+  const app = harness('components/TriagePanel.tsx', '', {
+    '@/lib/api': { submitToBackend: async () => data },
+    '@/lib/session': { parsePrediction: value => value, automaticLane: () => 'MR' },
+  });
+  let calls = 0;
+  const onSave = async () => ++calls === 1 ? 'Penyimpanan penuh.' : '';
+  app.render({ onSave });
+  app.values[5] = { name: 'battery.jpg' };
+  app.callbacks.length = 0;
+  app.render({ onSave });
+  await app.callbacks.at(-1)();
+  let tree = app.render({ onSave });
+  assert.match(text(tree), /Penyimpanan penuh/);
+  const button = nodes(tree).find(n => n.type === 'button' && text(n).includes('Catat barang ini'));
+  assert.equal(button.props.disabled, false);
+  await button.props.onClick();
+  tree = app.render({ onSave });
+  assert.match(text(tree), /Barang sudah dicatat/);
+  assert.equal(calls, 2);
+});
 
 test('Console navigates exact group, opens persistent Explorer, focuses tab without URL change', () => {
   const app = harness('app/page.tsx');
@@ -145,7 +237,7 @@ test('Storage notice stays below workspace with optional details and brief loadi
   const disclosure = nodes(footer).find(n => n.type === 'details');
   assert.equal(disclosure.props.open, undefined);
   assert.equal(text(nodes(disclosure).find(n => n.type === 'summary')), 'Tentang penyimpanan');
-  for (const copy of ['100 barang', 'tanpa foto', 'Ekspor catatan', 'identitas pengisi tidak diverifikasi', 'Bukan audit resmi', 'jam perangkat mundur']) assert.ok(text(disclosure).includes(copy));
+  for (const copy of ['300 barang', 'tanpa foto', 'Ekspor catatan', 'identitas pengisi tidak diverifikasi', 'Bukan audit resmi', 'jam perangkat mundur']) assert.ok(text(disclosure).replace(/\s+/g, ' ').includes(copy));
   assert.equal(text(all.find(n => n.props.role === 'status')), 'Memuat…');
   assert.equal(all.some(n => n.props.className === 'demo-notice'), false);
   const section = all.find(n => n.props.className === 'demo-records');

@@ -32,6 +32,13 @@ test('locked deletion preserves unrelated writes and rejects stale or absent tar
  await assert.rejects(mutateStore(rows=>deleteRecord(rows,b)),/berubah/);
  assert.equal(values.get(KEY),reviewed);
 });
+test('300 records persist; 301st write is rejected without data loss',async()=>{
+ values.clear(); const rows=Array.from({length:300},(_,i)=>createRecord(p,`fixture-${i}.jpg`));
+ await mutateStore(()=>rows); const before=values.get(KEY);
+ assert.equal(parseStore(before).records.length,300);
+ await assert.rejects(mutateStore(old=>[createRecord(p,'fixture-301.jpg'),...old]),/tidak valid/);
+ assert.equal(values.get(KEY),before);
+});
 test('unsupported locking and quota errors preserve original data',async()=>{
  const before=values.get(KEY),locks=navigator.locks;
  navigator.locks=undefined;await assert.rejects(mutateStore(rows=>rows),/browser/i);navigator.locks=locks;

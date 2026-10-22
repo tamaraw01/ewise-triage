@@ -9,6 +9,21 @@ const input = { category: 'Baterai (ponsel/laptop)', lane: 'P1', note: 'Diperiks
 const clone = value => JSON.parse(JSON.stringify(value));
 const store = record => ({ version: 1, records: [record] });
 
+test('workflow uses original canonical lane across all historical states without schema changes', () => {
+  for (const p of [prediction(), { ...prediction(), status: 'review' }, { ...prediction(), cluster: { ...prediction().cluster, id: 9 } }]) {
+    const { automaticLane } = require('../lib/session.ts');
+    const pending = domain.createRecord(p, 'fixture-not-real-inference.jpg');
+    const review = domain.appendReview(pending, { ...input, status: 'review' });
+    const done = domain.appendReview(review, input);
+    for (const record of [pending, review, done]) {
+      assert.equal(domain.workflowStatus(record), automaticLane(p) === 'MR' ? record.status : 'logged');
+      const raw = JSON.stringify(store(record));
+      assert.equal(JSON.stringify(domain.parseStore(raw)), raw);
+      assert.equal(Object.hasOwn(record, 'workflowStatus'), false);
+    }
+  }
+});
+
 test('new records hold complete detached frozen inference and no assumed review', () => {
   const p = prediction();
   p.photo = 'do not persist'; p.cluster.extra = 'backend extra';
@@ -111,8 +126,8 @@ test('record, review and string bounds accept ceiling and reject overflow', () =
   assert.equal(r.reviews.length, 100); assert.throws(() => domain.appendReview(r, input));
   const bad = clone(store(r)); bad.records[0].reviews.push(clone(r.reviews[0]));
   assert.throws(() => domain.parseStore(bad));
-  const full = { version: 1, records: Array.from({ length: 100 }, () => domain.createRecord(prediction(), 'a.jpg')) };
-  assert.equal(domain.parseStore(full).records.length, 100);
+  const full = { version: 1, records: Array.from({ length: 300 }, () => domain.createRecord(prediction(), 'a.jpg')) };
+  assert.equal(domain.parseStore(full).records.length, 300);
   full.records.push(domain.createRecord(prediction(), 'a.jpg'));
   assert.throws(() => domain.parseStore(full));
 });

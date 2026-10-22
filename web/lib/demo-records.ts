@@ -1,4 +1,4 @@
-import { parsePrediction, type Prediction } from './session';
+import { automaticLane, parsePrediction, type Prediction } from './session';
 import { CLUSTERS_META, type LaneCode } from './data';
 
 export const UNRESOLVED_CATEGORY = 'Belum dipastikan';
@@ -17,7 +17,7 @@ export function deleteRecord(rows: readonly DemoRecord[], expected: DemoRecord):
   return rows.filter(row => row.id !== expected.id);
 }
 
-export const MAX_RECORDS = 100;
+export const MAX_RECORDS = 300;
 export const MAX_REVIEWS = 100;
 export const PROVENANCE = 'backend version not supplied';
 export const DEMO_ACTOR = 'Sesi demo (tanpa akun)';
@@ -31,6 +31,9 @@ export type DemoRecord = Readonly<{
   provenance: string | number; status: 'pending' | 'review' | 'done';
   reviews: readonly DemoReview[];
 }>;
+export function workflowStatus(record: DemoRecord): DemoRecord['status'] | 'logged' {
+  return automaticLane(record.inference) === 'MR' ? record.status : 'logged';
+}
 export type DemoStore = Readonly<{ version: 1; records: readonly DemoRecord[] }>;
 
 function invalid(): never { throw new Error('Data sesi demo tidak valid. Data tersimpan tidak diubah.'); }

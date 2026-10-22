@@ -40,7 +40,7 @@ export type ExploreHandler = (clusterId: number) => string;
 
 export default function TriagePanel({ active = true, onExplore, onSave }: { active?: boolean; onExplore?: ExploreHandler; onSave?: (result: Prediction, fileName: string) => Promise<string> }) {
   const [saved, setSaved] = useState(false);
-  const saving = useRef(false);
+  const saving = useRef<number | null>(null);
   const saveGeneration = useRef(0);
   const [saveError, setSaveError] = useState("");
   const [phase, setPhase] = useState<"idle" | "loading" | "done" | "error">("idle");
@@ -224,9 +224,9 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
   }, [autoCapture, cameraActive, active, phase, file, capturePhoto]);
 
   const saveResult = useCallback(async (prediction: Prediction, fileName: string) => {
-    if (!onSave || saving.current || saved) return;
-    saving.current = true;
     const generation = saveGeneration.current;
+    if (!onSave || saving.current === generation || saved) return;
+    saving.current = generation;
     try {
       const message = await onSave(prediction, fileName);
       if (generation !== saveGeneration.current) return;
@@ -238,7 +238,7 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
         setSaveError("Barang belum tersimpan. Coba lagi.");
         if (automatic.current) stopCamera();
       }
-    } finally { saving.current = false; }
+    } finally { if (saving.current === generation) saving.current = null; }
   }, [onSave, saved, stopCamera]);
 
   const submitAnalysis = useCallback(async () => {
@@ -256,7 +256,7 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
       parsePrediction(data);
       setResult(data as Prediction);
       setResultFileName(file.name);
-      if (automaticLane(data as Prediction) === "MR") await saveResult(data as Prediction, file.name);
+      await saveResult(data as Prediction, file.name);
       if (controller.signal.aborted) return;
       setPhase("done");
     } catch (err: unknown) {

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import TriagePanel, { type ExploreHandler } from "./TriagePanel";
-import { createRecord, appendReview, parseStore, categoriesForLane, deleteRecord, type DemoRecord } from "@/lib/demo-records";
+import { createRecord, appendReview, parseStore, categoriesForLane, deleteRecord, workflowStatus, MAX_RECORDS, type DemoRecord } from "@/lib/demo-records";
 import { automaticLane, manualExplanation, NAMING_FAILURE_REASON } from "@/lib/session";
 import { LANES, fixed4, type LaneCode } from "@/lib/data";
 
@@ -64,17 +64,18 @@ export default function DemoWorkspace({ active, onExplore }: { active: boolean; 
   const current = records.find(record => record.id === selected);
   const visible = records.filter(record => {
     const last = record.reviews.at(-1);
-    return (filter === "all" || (filter === "pending" ? !last : last?.status === filter)) && `${record.fileName} ${record.id} ${last?.category ?? ""}`.toLocaleLowerCase("id").includes(query.toLocaleLowerCase("id"));
+    return (filter === "all" || workflowStatus(record) === filter) && `${record.fileName} ${record.id} ${last?.category ?? ""}`.toLocaleLowerCase("id").includes(query.toLocaleLowerCase("id"));
   });
-  const done = records.filter(record => record.reviews.at(-1)?.status === "done").length;
-  const review = records.filter(record => record.reviews.at(-1)?.status === "review").length;
+  const pending = records.filter(record => workflowStatus(record) === "pending").length;
+  const done = records.filter(record => workflowStatus(record) === "done").length;
+  const review = records.filter(record => workflowStatus(record) === "review").length;
   return <>
     <TriagePanel active={active} onExplore={onExplore} onSave={async (prediction, fileName) => {
       try {
         const record = createRecord(prediction, fileName);
         await persist(rows => [record, ...rows]);
         setSelected(record.id);
-        if (automaticLane(prediction) === "MR") { setFilter("all"); setQuery(""); }
+        setFilter("all"); setQuery("");
         setError("");
         return "";
       } catch (e) { return e instanceof Error ? e.message : "Gagal menyimpan. Periksa ruang penyimpanan browser."; }
@@ -88,9 +89,9 @@ export default function DemoWorkspace({ active, onExplore }: { active: boolean; 
       {error && <div className="record-error" role="alert"><p>{error}</p><button className="btn" type="button" onClick={load}>Muat ulang catatan</button></div>}
       {!ready && !error && <p className="record-loading" role="status">Memuat…</p>}
       {ready && <>
-        <dl className="record-counts"><div><dt>Barang dicatat</dt><dd>{records.length}</dd></div><div><dt>Menunggu pemeriksaan</dt><dd>{records.length - done - review}</dd></div><div><dt>Perlu tinjauan</dt><dd>{review}</dd></div><div><dt>Selesai diperiksa</dt><dd>{done}</dd></div></dl>
-        <div className="record-filters"><label>Cari barang<input value={query} onChange={event => setQuery(event.target.value)} placeholder="Nama berkas, kategori, atau ID" /></label><label>Status<select value={filter} onChange={event => setFilter(event.target.value)}><option value="all">Semua status</option><option value="pending">Menunggu pemeriksaan</option><option value="review">Perlu tinjauan</option><option value="done">Selesai diperiksa</option></select></label></div>
-        {!records.length ? <div className="record-empty"><h3>Belum ada barang dicatat</h3><p>Analisis foto, lalu pilih “Catat barang ini”.</p></div> : <div className="record-workbench"><div className="record-list" aria-label="Daftar barang">{!visible.length && <p>Tidak ada barang sesuai pencarian.</p>}{visible.map(record => <button type="button" key={record.id} aria-pressed={selected === record.id} onClick={() => setSelected(record.id)}><strong>{record.reviews.at(-1)?.category ?? record.fileName}</strong><span>{record.reviews.at(-1)?.status === "done" ? "Selesai diperiksa" : record.reviews.length ? "Perlu tinjauan" : "Menunggu pemeriksaan"}</span><small>{date(record.createdAt)} · {record.id.slice(0, 8)}</small></button>)}</div>{current ? <RecordDetail key={`${current.id}:${current.reviews.at(-1)?.id ?? "new"}`} record={current} onExplore={onExplore} onDelete={async () => { try { await persist(rows => deleteRecord(rows, current)); setSelected(""); setError(""); return ""; } catch (e) { const message = e instanceof Error ? e.message : "Catatan belum dihapus."; setError(message); return message; } }} onReview={async input => { try { await persist(rows => {
+        <dl className="record-counts"><div><dt>Barang dicatat</dt><dd>{records.length}</dd></div><div><dt>Menunggu pemeriksaan</dt><dd>{pending}</dd></div><div><dt>Perlu tinjauan</dt><dd>{review}</dd></div><div><dt>Selesai diperiksa</dt><dd>{done}</dd></div></dl>
+        <div className="record-filters"><label>Cari barang<input value={query} onChange={event => setQuery(event.target.value)} placeholder="Nama berkas, kategori, atau ID" /></label><label>Status<select value={filter} onChange={event => setFilter(event.target.value)}><option value="all">Semua status</option><option value="logged">Tercatat</option><option value="pending">Menunggu pemeriksaan</option><option value="review">Perlu tinjauan</option><option value="done">Selesai diperiksa</option></select></label></div>
+        {!records.length ? <div className="record-empty"><h3>Belum ada barang dicatat</h3><p>Setiap hasil analisis berhasil dicatat otomatis di browser ini.</p></div> : <div className="record-workbench"><div className="record-list" aria-label="Daftar barang">{!visible.length && <p>Tidak ada barang sesuai pencarian.</p>}{visible.map(record => <button type="button" key={record.id} aria-pressed={selected === record.id} onClick={() => setSelected(record.id)}><strong>{record.reviews.at(-1)?.category ?? record.fileName}</strong><span>{{ logged: "Tercatat", pending: "Menunggu pemeriksaan", review: "Perlu tinjauan", done: "Selesai diperiksa" }[workflowStatus(record)]}</span><small>{date(record.createdAt)} · {record.id.slice(0, 8)}</small></button>)}</div>{current ? <RecordDetail key={`${current.id}:${current.reviews.at(-1)?.id ?? "new"}`} record={current} onExplore={onExplore} onDelete={async () => { try { await persist(rows => deleteRecord(rows, current)); setSelected(""); setError(""); return ""; } catch (e) { const message = e instanceof Error ? e.message : "Catatan belum dihapus."; setError(message); return message; } }} onReview={async input => { try { await persist(rows => {
           const latest = rows.find(row => row.id === current.id);
           if (!latest || latest.reviews.at(-1)?.id !== current.reviews.at(-1)?.id) {
             load(); throw new Error("Keputusan berubah di tab lain. Form telah dimuat ulang; periksa lalu ulangi.");
@@ -104,7 +105,7 @@ export default function DemoWorkspace({ active, onExplore }: { active: boolean; 
           <summary>Tentang penyimpanan</summary>
           <div className="record-storage-info">
             <p>Demo tanpa akun. Catatan tidak dibagikan ke pengunjung lain; identitas pengisi tidak diverifikasi. Bukan audit resmi.</p>
-            <p>Kapasitas 100 barang, tanpa foto. Ekspor catatan sebelum menghapus data browser.</p>
+            <p>Kapasitas {MAX_RECORDS} barang, tanpa foto. Ekspor catatan sebelum menghapus data browser.</p>
             <p>Waktu mengikuti perangkat. Riwayat diurutkan berdasarkan penyimpanan, termasuk saat jam perangkat mundur.</p>
           </div>
         </details>
