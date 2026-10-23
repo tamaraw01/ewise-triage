@@ -222,10 +222,10 @@ export default function MotionPreview() {
     <header className="dashboard-header"><Link className="motion-brand" href="/">E<span>-</span>WISE</Link><Link href="/">Kembali ke konsol</Link></header>
     <div className="motion-heading"><div><p>Pratinjau implementasi</p><h1>Alur pemilahan</h1></div><button className="btn" type="button" aria-pressed={paused} onClick={() => setPaused(!paused)}>{paused ? "Lanjutkan animasi" : "Jeda animasi"}</button></div>
     <p className="motion-note">Ilustrasi integrasi, bukan inferensi langsung.</p>
-    <section aria-labelledby="mixed-title"><h2 id="mixed-title">01 · Muatan campuran</h2><FactoryLoop single={false} paused={paused} />
+    <section aria-labelledby="mixed-title"><h2 id="mixed-title">Simulasi E-WISE</h2><FactoryLoop single={false} paused={paused} />
 
     </section>
-    <section aria-labelledby="single-title"><h2 id="single-title">02 · Target C3: PCB</h2><FactoryLoop single paused={paused} /></section>
+    <section aria-labelledby="single-title"><h2 id="single-title">Rekomendasi</h2><FactoryLoop single paused={paused} /></section>
 
     <footer className="dashboard-footer">Pratinjau gerak</footer>
   </main>;
