@@ -29,7 +29,7 @@ test('locked deletion preserves unrelated writes and rejects stale or absent tar
  const before=values.get(KEY);
  await assert.rejects(mutateStore(rows=>deleteRecord(rows,a)),/berubah/);
  assert.equal(values.get(KEY),before);
- await mutateStore(rows=>rows.map(r=>r.id===b.id?appendReview(r,{category:'Baterai (ponsel/laptop)',lane:'P1',status:'done',note:'Checked'}):r));
+ await mutateStore(rows=>rows.map(r=>r.id===b.id?appendReview(r,{category:'Battery (Li-ion ponsel/laptop)',lane:'P1',status:'done',note:'Checked'}):r));
  const reviewed=values.get(KEY);
  await assert.rejects(mutateStore(rows=>deleteRecord(rows,b)),/berubah/);
  assert.equal(values.get(KEY),reviewed);

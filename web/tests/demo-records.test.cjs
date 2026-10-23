@@ -5,7 +5,7 @@ const ts = require('typescript');
 require.extensions['.ts'] = (module, filename) => module._compile(ts.transpileModule(require('node:fs').readFileSync(filename, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, filename);
 const domain = require('../lib/demo-records.ts');
 const prediction = () => ({ status: 'classified', margin: .12, threshold: .0297, cluster: { id: 4, label: 'Battery', contested: false, route: 'HAZARD', handling: 'Physical check' }, ranking: [{ cluster: 4, label: 'Battery', similarity: -.2 }] });
-const input = { category: 'Baterai (ponsel/laptop)', lane: 'P1', note: 'Diperiksa fisik', status: 'done' };
+const input = { category: 'Battery (Li-ion ponsel/laptop)', lane: 'P1', note: 'Diperiksa fisik', status: 'done' };
 const clone = value => JSON.parse(JSON.stringify(value));
 const store = record => ({ version: 1, records: [record] });
 
@@ -138,7 +138,7 @@ test('categories follow canonical lane taxonomy, with all choices and unresolved
  for (const lane of ['P1','P2','P3']) {
   assert.deepEqual(domain.categoriesForLane(lane), [...new Set(Object.values(CLUSTERS_META).filter(c=>c.lane===lane).map(c=>c.sub))]);
  }
- assert.deepEqual(domain.categoriesForLane('MR'), [domain.UNRESOLVED_CATEGORY, 'Perangkat campuran (perlu pemeriksaan)', 'Pemutar audio (kelas Player)']);
+ assert.deepEqual(domain.categoriesForLane('MR'), [domain.UNRESOLVED_CATEGORY, 'Mobile (Perangkat campuran)', 'Mobile (Music Player)']);
 });
 test('new category/lane pairs validated, old free text retained and correction appendable', () => {
  const r=domain.createRecord(prediction(),'legacy.jpg');

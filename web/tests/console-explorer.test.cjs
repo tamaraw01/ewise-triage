@@ -222,7 +222,9 @@ test('C9/C11 explanations render in result and saved inference; other MR stays g
   const priorSource = require('node:child_process').execFileSync('git', ['show', 'ae28b7a:web/lib/data.ts'], { encoding: 'utf8' });
   const prior = {};
   vm.runInNewContext(ts.transpileModule(priorSource, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, { exports: prior, require: () => ({ default: { points: [] } }) });
-  assert.equal(JSON.stringify(canonical.CLUSTERS_META), JSON.stringify(prior.CLUSTERS_META));
+  const withoutDisplayNames = meta => JSON.stringify(meta, (key, value) => key === 'sub' ? undefined : value);
+  assert.equal(withoutDisplayNames(canonical.CLUSTERS_META), withoutDisplayNames(prior.CLUSTERS_META));
+  // Display names covered by cluster-names.test.cjs; all other metadata stays exact.
   for (const id of [9, 11, 4]) {
     const data = { status: 'review', margin: .001, threshold: .0297, cluster: { id, label: null, contested: false, route: 'MANUAL_REVIEW', handling: '' } };
     const explanation = session.manualExplanation(id);
@@ -244,7 +246,7 @@ test('C9/C11 explanations render in result and saved inference; other MR stays g
     }
     assert.equal(JSON.stringify(record), before);
     const categories = require('../lib/demo-records.ts').categoriesForLane('MR');
-    assert.ok(categories.includes('Perangkat campuran (perlu pemeriksaan)'));
+    assert.ok(categories.includes('Mobile (Perangkat campuran)'));
     assert.ok(!categories.includes('Foto referensi perlu ditinjau'));
   }
 });
