@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 
 import { fixed4, CLUSTERS_META, HANDLING_SOURCES, LANES, type LaneCode } from "@/lib/data";
 import { submitToBackend } from "@/lib/api";
 import { IconWarn } from "./Primitives";
-import ClusterMap from "./ClusterMap";
+const ClusterMap = dynamic(() => import("./ClusterMap"));
 import { automaticLane, candidateLabel, manualExplanation, manualReason, parsePrediction, validateFile } from "@/lib/session";
 
 gsap.registerPlugin(useGSAP);

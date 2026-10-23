@@ -18,6 +18,10 @@ const methods = ["K-Means", "Ward", "GMM", "Konsensus"];
 const chosen = analytics.selection.selected;
 const selectedK = [chosen.kmeans, chosen.ward, chosen.gmm, chosen.consensus];
 const points = flow.points;
+const centroids = Array.from({ length: 14 }, (_, k) => {
+ const subset = points.filter(p => p[5] === k);
+ return [subset.reduce((a, p) => a + p[0], 0) / subset.length, subset.reduce((a, p) => a + p[1], 0) / subset.length];
+});
 const xs = points.map(p => p[0]), ys = points.map(p => p[1]);
 const bounds = { xmin: Math.min(...xs), xmax: Math.max(...xs), ymin: Math.min(...ys), ymax: Math.max(...ys) };
 // One isotropic scale, reused for every partition; only point labels change.
@@ -52,6 +56,8 @@ export default function AnalysisFlow() {
  const [stage, setStage] = useState(0), [partition, setPartition] = useState(0), [focus, setFocus] = useState<number | null>(null);
  const [systemReduce, setSystemReduce] = useState(false), [manualReduce, setManualReduce] = useState<boolean | null>(null);
  const reduce = manualReduce ?? systemReduce;
+ const selection = useRef({ partition, focus }), redraw = useRef(() => {});
+ useEffect(() => { selection.current = { partition, focus }; redraw.current(); }, [partition, focus]);
  useEffect(() => {
   const media = matchMedia("(prefers-reduced-motion: reduce)");
   const update = () => { setSystemReduce(media.matches); setManualReduce(null); };
@@ -85,7 +91,7 @@ function line(a: [number,number],b: [number,number],color='#a7ba83',width=1){ctx
 function dot(x: number,y: number,r: number,col: string){ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()}
 function project(x: number,y: number,z: number,rot=0): [number,number]{const xx=x*Math.cos(rot)+z*Math.sin(rot),zz=-x*Math.sin(rot)+z*Math.cos(rot),f=4/(4+zz);return [cx+xx*R*f,cy+y*R*f]}
 let cx = 0, cy = 0, R = 0;
-function draw(){queued=false;if(!ctx)return;ctx.clearRect(0,0,W,H);const mobile=W<760;cx=mobile?W*.5:W*.69;cy=mobile?H*.69:H*.49;R=Math.min(mobile?W*.34:W*.22,H*.32);const t=manual?1:phase;
+function draw(){const { partition, focus } = selection.current;queued=false;if(!ctx)return;ctx.clearRect(0,0,W,H);const mobile=W<760;cx=mobile?W*.5:W*.69;cy=mobile?H*.69:H*.49;R=Math.min(mobile?W*.34:W*.22,H*.32);const t=manual?1:phase;
 
  if(stage===0){for(let i=0;i<80;i++){const col=i%10,row=Math.floor(i/10),x=cx+(col-4.5)*R*.185,y=cy+(row-3.5)*R*.19;ctx.save();ctx.translate(x,y);ctx.rotate((col-4.5)*.025);ctx.fillStyle=i%6?'#a4b398':'#c8cebb';ctx.fillRect(-R*.075,-R*.07,R*.15,R*.14);ctx.strokeStyle='#a7ba83';ctx.lineWidth=1;ctx.strokeRect(-R*.045,-R*.04,R*.09,R*.06);line([-R*.02,R*.025],[R*.025,R*.025]);ctx.restore()}}
  if(stage===1){for(let i=0;i<92;i++){const a=i/92*Math.PI*2;ctx.strokeStyle=i%11?'#7d907066':'#a7ba83';ctx.beginPath();ctx.moveTo(cx-R*1.05,cy+Math.sin(a)*R*.65);ctx.bezierCurveTo(cx-R*.3,cy+Math.sin(a*2+t)*R,cx+R*.2,cy+Math.cos(a)*R,cx+R*1.1,cy+(i/92-.5)*R*1.7);ctx.stroke();dot(cx+R*1.1,cy+(i/92-.5)*R*1.7,1.5,'#a7ba83')} }
@@ -93,7 +99,7 @@ function draw(){queued=false;if(!ctx)return;ctx.clearRect(0,0,W,H);const mobile=
  if(stage===3){ctx.font=`${mobile?16:24}px 'IBM Plex Sans'`;ctx.fillStyle='#a7ba83';ctx.textAlign='center';ctx.fillText('L2 · 1024D',cx,cy-R*1.1);ctx.fillText('50D · clustering',cx-R*.68,cy+R*.95);ctx.fillText('2D · peta',cx+R*.68,cy+R*.95);for(let i=0;i<65;i++){const a=i/65*Math.PI*2;for(const side of [-1,1]){ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*R*.13,cy-R*.9);ctx.bezierCurveTo(cx+Math.cos(a)*R*.3,cy-R*.2,cx+side*R*.7+Math.sin(a)*R*.35,cy-R*.1,cx+side*R*.7+Math.sin(a)*R*.35,cy+R*.65+(i%9)*R*.012);ctx.strokeStyle=side<0?'#6e805b66':'#9c764555';ctx.stroke()}}}
  if([4,5,6,8].includes(stage)){const sc=scale*Math.min(R*2.2/440,R*1.7/300),part=stage===5?partition+2:5;
  for(let i=0;i<points.length;i++){const p=points[i],x=cx+(p[0]-(xmin+xmax)/2)*sc,y=cy-(p[1]-(ymin+ymax)/2)*sc;const label=p[part];dot(x,y,mobile?1.35:2.1,stage===8&&focus!==null?(p[5]===focus?'#ebad4a':'#495244'):stage===4?'#a7ba83':`hsl(${70+label*3} ${19+label%4*7}% ${28+label%6*7}%)`)}
- if(stage===6){ctx.font=`${mobile?10:12}px 'IBM Plex Sans'`;ctx.textAlign='center';for(let k=0;k<14;k++){const subset=points.filter(p=>p[5]===k),x=subset.reduce((a,p)=>a+p[0],0)/subset.length,y=subset.reduce((a,p)=>a+p[1],0)/subset.length;const px=cx+(x-(xmin+xmax)/2)*sc,py=cy-(y-(ymin+ymax)/2)*sc;ctx.fillStyle='#1a1f18';ctx.fillRect(px-13,py-9,26,16);ctx.fillStyle='#eeeade';ctx.fillText('C'+k,px,py+3)}}
+ if(stage===6){ctx.font=`${mobile?10:12}px 'IBM Plex Sans'`;ctx.textAlign='center';for(let k=0;k<14;k++){const [x,y]=centroids[k];const px=cx+(x-(xmin+xmax)/2)*sc,py=cy-(y-(ymin+ymax)/2)*sc;ctx.fillStyle='#1a1f18';ctx.fillRect(px-13,py-9,26,16);ctx.fillStyle='#eeeade';ctx.fillText('C'+k,px,py+3)}}
  }
 
  if(renderer){
@@ -102,6 +108,7 @@ function draw(){queued=false;if(!ctx)return;ctx.clearRect(0,0,W,H);const mobile=
  }
 }
  function requestDraw(){if(!queued){queued=true;frame=requestAnimationFrame(draw);}}
+ redraw.current=requestDraw;
  const sections=Array.from(rootNode.querySelectorAll<HTMLElement>('[data-stage]'));
  function position(){
   let best=0;sections.forEach((s,i)=>{if(s.getBoundingClientRect().top<innerHeight*.48)best=i;});
@@ -118,11 +125,12 @@ function draw(){queued=false;if(!ctx)return;ctx.clearRect(0,0,W,H);const mobile=
  ScrollTrigger.create({trigger:rootNode,start:'top bottom',end:'bottom top',onUpdate:position});
  window.addEventListener('scroll',position,{passive:true});window.addEventListener('resize',resize);resize();
  return ()=>{
+  redraw.current=()=>{};
   observer.disconnect();window.removeEventListener('scroll',position);window.removeEventListener('resize',resize);cancelAnimationFrame(frame);
   geometry.dispose();material.dispose();arrows.forEach(a=>{a.line.geometry.dispose();a.cone.geometry.dispose();[a.line.material,a.cone.material].flat().forEach(m=>m.dispose());});
   renderer?.dispose();renderer?.domElement.remove();
  };
- },{scope:root,dependencies:[partition,reduce,focus],revertOnUpdate:true});
+ },{scope:root,dependencies:[reduce],revertOnUpdate:true});
  const named=focus===null?null:clusters.find(c=>c.id===focus);
  return <section ref={root} className="analysis-flow" aria-labelledby={`${id}-title`} data-reduced-motion={reduce}>
   <header className="af-intro"><h2 id={`${id}-title`}>Dari citra, menjadi konsensus.</h2><button type="button" aria-pressed={reduce} onClick={()=>setManualReduce(!reduce)}>Kurangi gerak: {reduce?'aktif':'nonaktif'}</button></header>

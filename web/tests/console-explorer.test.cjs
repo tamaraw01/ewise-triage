@@ -25,7 +25,7 @@ function harness(file, expose = '', overrides = {}) {
     gsap: { registerPlugin() {}, config() {} }, '@gsap/react': { useGSAP() {} },
     'next/dynamic': () => 'ClusterField', 'next/image': 'Image',
     '@/components/ExplorationTools': { default: 'ExplorationTools', researchClusters: clusters },
-    '@/lib/data': { CLUSTERS_META: metadata, HANDLING_SOURCES: [{ name: 'EPA', url: 'https://www.epa.gov/recycle/used-lithium-ion-batteries' }], fixed4: n => n.toFixed(4), LANES: { P1: { code: 'P1', name: 'Bahaya', desc: 'Pisahkan' }, MR: { code: 'MR', name: 'Manual', desc: 'Periksa' } }, scatter: [] },
+    '@/lib/data': { CLUSTERS_META: Object.fromEntries(clusters.map(c => [c.id, { ...metadata[c.id], ...c }])), HANDLING_SOURCES: [{ name: 'EPA', url: 'https://www.epa.gov/recycle/used-lithium-ion-batteries' }], fixed4: n => n.toFixed(4), LANES: { P1: { code: 'P1', name: 'Bahaya', desc: 'Pisahkan' }, MR: { code: 'MR', name: 'Manual', desc: 'Periksa' } }, scatter: [] },
     '@/lib/session': {
       automaticLane: data => data.status === 'classified' ? 'P1' : 'MR',
       candidateLabel: data => data.cluster.label,
@@ -266,7 +266,7 @@ test('Storage notice stays below workspace with optional details and brief loadi
 });
 
 test('Reference copy and gallery precede handling; console stays mounted', () => {
-  const page = fs.readFileSync(path.join(__dirname, '../app/page.tsx'), 'utf8');
+  const page = fs.readFileSync(path.join(__dirname, '../app/page.tsx'), 'utf8') + fs.readFileSync(path.join(__dirname, '../components/Explorer.tsx'), 'utf8');
   assert.match(page, /Jumlah citra referensi/);
   assert.match(page, /<p>\{c\.action\}<\/p>/);
   assert.match(page, /<strong>Material: <\/strong>\{c\.material\}/);

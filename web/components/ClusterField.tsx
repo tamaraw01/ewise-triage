@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import gsap from "gsap";
-import { scatter } from "@/lib/data";
+import { scatter } from "@/lib/scatter";
 import photos from "@/data/map-photos.json";
 import styles from "./ClusterField.module.css";
 import { viewportPhotos, filenameLabels } from "@/lib/map-layout";

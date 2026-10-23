@@ -46,7 +46,7 @@ test("ClusterField stops hidden work and responds to live reduced motion", () =>
       };
       if (name === "three") return { ...THREE, WebGLRenderer: Renderer };
       if (name === "gsap") return gsap;
-      if (name === "@/lib/data") return { CLUSTERS_META: Object.fromEntries(Array.from({length: 8}, (_, i) => [i, {}])), scatter: Array.from({length: 8}, (_, c) => ({x: c, y: c, c})) };
+      if (name === "@/lib/scatter") return { CLUSTERS_META: Object.fromEntries(Array.from({length: 8}, (_, i) => [i, {}])), scatter: Array.from({length: 8}, (_, c) => ({x: c, y: c, c})) };
       if (name === "@/data/map-photos.json") return { photos: [] };
       if (name === "@/data/map-atlas.json") return { entries: [], pages: [] };
       if (name === "@/lib/map-layout") { const m = { exports: {} }; vm.runInNewContext(ts.transpileModule(fs.readFileSync(require.resolve("../lib/map-layout.ts"), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, { exports: m.exports }); return m.exports; }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { scatter } from "@/lib/data";
+import { scatter } from "@/lib/scatter";
 
 const W = 720, H = 460, PAD = 44;
 
