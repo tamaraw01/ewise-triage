@@ -1,0 +1,22 @@
+.motion-preview { max-width:1440px; }
+.motion-preview a { color:var(--bone); text-underline-offset:5px; }
+.motion-brand { text-decoration:none; font-size:30px; font-weight:700; letter-spacing:-.04em; }
+.motion-brand span { color:var(--amber); }
+.motion-heading { display:flex; justify-content:space-between; align-items:center; gap:24px; margin:32px 0 16px; }
+.motion-heading p { color:var(--bone-dim); font-size:14px; margin-bottom:8px; }
+.motion-heading h1, .motion-heading h2 { font-size:clamp(2.2rem,4vw,3.5rem); font-weight:600; letter-spacing:-.04em; line-height:1.1; }
+.motion-heading button { flex-shrink:0; }
+.motion-note { max-width:75ch; font-size:14px; line-height:1.65; color:var(--bone-dim); margin-bottom:36px; }
+.motion-preview section { margin-bottom:48px; }
+.motion-preview section h2, .motion-preview section h3 { font-size:20px; font-weight:500; padding:16px 0; border-top:1px solid var(--edge); }
+.motion-scene { width:100%; aspect-ratio:1.9; overflow:hidden; background:#d4d7ca; }
+.motion-scene canvas { display:block; width:100%; height:100%; }
+.motion-routes { display:flex; flex-wrap:wrap; gap:10px 28px; margin:18px 0 0; padding:0; list-style:none; color:var(--bone-dim); font-size:13px; }
+.motion-routes .num { color:var(--green); margin-right:6px; }
+.motion-caption { margin-top:16px; color:var(--bone-dim); font-size:14px; }
+.motion-lanes { display:flex; flex-wrap:wrap; gap:24px 40px; padding:24px 0 36px; border-top:1px solid var(--edge); }
+.motion-lanes div { display:flex; align-items:center; gap:12px; }
+.motion-lanes dt { font-size:22px; color:var(--green); }
+.motion-lanes dd { font-size:14px; color:var(--bone-dim); }
+.motion-preference { display:flex; flex-wrap:wrap; gap:16px; align-items:center; margin:16px 0; font-size:14px; }
+@media(max-width:600px) { .motion-heading { align-items:start; flex-direction:column; margin-top:16px; } .motion-scene { aspect-ratio:1.1; } .motion-routes { display:grid; gap:12px; } .motion-preview section { margin-bottom:32px; } .motion-preview .dashboard-header a:last-child { font-size:13px; } }
