@@ -8,6 +8,7 @@ import { createRecord, appendReview, parseStore, categoriesForLane, deleteRecord
 import { automaticLane, manualExplanation, NAMING_FAILURE_REASON } from "@/lib/session";
 import { LANES, fixed4, type LaneCode } from "@/lib/data";
 
+import RecordPhoto from "./RecordPhoto";
 import { KEY, mutateStore } from "@/lib/demo-storage";
 const date = (value: string) => new Date(value).toLocaleString("id-ID");
 gsap.registerPlugin(useGSAP);
@@ -48,8 +49,8 @@ export default function DemoWorkspace({ active, onExplore }: { active: boolean; 
     return () => media.revert();
   }, { scope: root, dependencies: [selected], revertOnUpdate: true });
 
-  const persist = async (update: ((rows: readonly DemoRecord[]) => readonly DemoRecord[]) | null) => {
-    const next = await mutateStore(update);
+  const persist = async (update: ((rows: readonly DemoRecord[]) => readonly DemoRecord[]) | null, photo?: { id: string; file: File }) => {
+    const next = await mutateStore(update, photo);
     load();
     return next;
   };
@@ -70,10 +71,10 @@ export default function DemoWorkspace({ active, onExplore }: { active: boolean; 
   const done = records.filter(record => workflowStatus(record) === "done").length;
   const review = records.filter(record => workflowStatus(record) === "review").length;
   return <>
-    <TriagePanel active={active} onExplore={onExplore} onSave={async (prediction, fileName) => {
+    <TriagePanel active={active} onExplore={onExplore} onSave={async (prediction, file) => {
       try {
-        const record = createRecord(prediction, fileName);
-        await persist(rows => [record, ...rows]);
+        const record = createRecord(prediction, file.name);
+        await persist(rows => [record, ...rows], { id: record.id, file });
         setSelected(record.id);
         setFilter("all"); setQuery("");
         setError("");
@@ -85,7 +86,7 @@ export default function DemoWorkspace({ active, onExplore }: { active: boolean; 
         <button className="btn" type="button" onClick={() => run(() => { const raw = localStorage.getItem(KEY); if (!raw) throw new Error("Belum ada catatan untuk diekspor."); download(raw); })}>Ekspor JSON</button>
         <button className="btn" type="button" onClick={() => setConfirmClear(true)}>Hapus semua catatan</button>
       </div></div>
-      {confirmClear && <div className="record-confirm" role="group" aria-label="Konfirmasi hapus" onKeyDown={event => { if (event.key === "Escape") setConfirmClear(false); }}><p>Hapus seluruh catatan demo di browser ini? Tindakan tidak dapat dibatalkan. Ekspor dahulu jika masih diperlukan.</p><button className="btn" type="button" onClick={() => setConfirmClear(false)}>Batal</button><button className="btn" type="button" onClick={() => run(async () => { await persist(null); setSelected(""); setConfirmClear(false); })}>Ya, hapus seluruh catatan</button></div>}
+      {confirmClear && <div className="record-confirm" role="group" aria-label="Konfirmasi hapus" onKeyDown={event => { if (event.key === "Escape") setConfirmClear(false); }}><p>Hapus seluruh catatan demo beserta fotonya di browser ini? Tindakan tidak dapat dibatalkan. Ekspor metadata JSON dan unduh foto terpisah dahulu jika masih diperlukan.</p><button className="btn" type="button" onClick={() => setConfirmClear(false)}>Batal</button><button className="btn" type="button" onClick={() => run(async () => { await persist(null); setSelected(""); setConfirmClear(false); })}>Ya, hapus seluruh catatan</button></div>}
       {error && <div className="record-error" role="alert"><p>{error}</p><button className="btn" type="button" onClick={load}>Muat ulang catatan</button></div>}
       {!ready && !error && <p className="record-loading" role="status">Memuat…</p>}
       {ready && <>
@@ -105,7 +106,7 @@ export default function DemoWorkspace({ active, onExplore }: { active: boolean; 
           <summary>Tentang penyimpanan</summary>
           <div className="record-storage-info">
             <p>Demo tanpa akun. Catatan tidak dibagikan ke pengunjung lain; identitas pengisi tidak diverifikasi. Bukan audit resmi.</p>
-            <p>Kapasitas {MAX_RECORDS} barang, tanpa foto. Ekspor catatan sebelum menghapus data browser.</p>
+            <p>Kapasitas {MAX_RECORDS} barang dengan foto sumber maksimal 3 MB per barang (hingga 900 MB). Kuota browser bisa lebih kecil. Foto disimpan tanpa kompresi tambahan dan hanya dimuat saat catatan dipilih. Ekspor catatan (JSON) hanya berisi metadata, bukan foto. Unduh foto terpisah sebelum menghapus data browser.</p>
             <p>Waktu mengikuti perangkat. Riwayat diurutkan berdasarkan penyimpanan, termasuk saat jam perangkat mundur.</p>
           </div>
         </details>
@@ -127,6 +128,7 @@ function RecordDetail({ record, onExplore, onReview, onDelete }: { record: DemoR
   const [error, setError] = useState("");
   return <article className="record-detail">
     <header><p className="spec num">{record.id}</p><h3>{record.fileName}</h3><p className="spec">Dicatat {date(record.createdAt)}</p></header>
+    <RecordPhoto id={record.id} fileName={record.fileName} />
     <div className="record-inference"><h4>Hasil E-WISE</h4><p>C{record.inference.cluster.id} · {record.inference.cluster.label ?? "Belum dipastikan"}</p><p>Margin kecocokan {fixed4(record.inference.margin)} · Acuan {automaticLane(record.inference)}</p>{automaticLane(record.inference) === "MR" && <p>{explanation ? `${explanation.title}. ${explanation.body}` : NAMING_FAILURE_REASON}</p>}<p className="spec">{record.provenance === "backend version not supplied" ? "Versi model tidak disertakan backend." : `Versi dari backend: ${record.provenance}.`}</p><button className="btn" type="button" onClick={() => setError(onExplore(record.inference.cluster.id))}>Lihat kelompok referensi</button></div>
     <form className="record-form" onSubmit={async event => { event.preventDefault(); const err = await onReview({ category, lane, note, status }); setError(err); if (!err) { setNote(""); setMessage("Tersimpan."); } }}>
       <h4>{last ? "Tambah koreksi" : "Verifikasi"}</h4>
@@ -140,7 +142,7 @@ function RecordDetail({ record, onExplore, onReview, onDelete }: { record: DemoR
       {error && <p role="alert">{error}</p>}<p role="status">{message}</p>
     </form>
     <button className="btn" type="button" onClick={() => setConfirmDelete(true)}>Hapus catatan barang</button>
-    {confirmDelete && <div className="record-confirm" role="group" aria-label="Konfirmasi hapus catatan barang" onKeyDown={event => { if (event.key === "Escape" && !deleting) setConfirmDelete(false); }}><p>Hapus catatan {record.fileName} beserta riwayatnya? Tindakan tidak dapat dibatalkan. Catatan barang lain tetap tersimpan.</p><button className="btn" type="button" disabled={deleting} onClick={() => setConfirmDelete(false)}>Batal</button><button className="btn" type="button" disabled={deleting} onClick={async () => { setDeleting(true); setError(await onDelete()); setDeleting(false); }}>Ya, hapus catatan barang</button></div>}
+    {confirmDelete && <div className="record-confirm" role="group" aria-label="Konfirmasi hapus catatan barang" onKeyDown={event => { if (event.key === "Escape" && !deleting) setConfirmDelete(false); }}><p>Hapus catatan {record.fileName} beserta foto dan riwayatnya? Tindakan tidak dapat dibatalkan. Catatan barang lain tetap tersimpan.</p><button className="btn" type="button" disabled={deleting} onClick={() => setConfirmDelete(false)}>Batal</button><button className="btn" type="button" disabled={deleting} onClick={async () => { setDeleting(true); setError(await onDelete()); setDeleting(false); }}>Ya, hapus catatan barang</button></div>}
     <div className="record-history"><h4>Riwayat</h4>{!record.reviews.length && <p>Belum ada riwayat.</p>}<ol>{record.reviews.slice().reverse().map(entry => <li key={entry.id}><strong>{entry.category} · {entry.lane}</strong><span>{entry.status === "done" ? "Selesai" : "Ditahan"}</span><p>{entry.note}</p><small>{date(entry.at)} · Sesi demo (tanpa akun)</small></li>)}</ol><details><summary>Snapshot inferensi</summary><pre>{JSON.stringify(record.inference, null, 2)}</pre></details></div>
   </article>;
 }

@@ -72,7 +72,7 @@ test('all successful predictions record automatically once', async () => {
     const button = nodes(tree).find(n => n.type === 'button' && /Catat barang ini|Barang sudah dicatat/.test(text(n)));
     assert.equal(button.props.disabled, true);
     if (status === 'review') {
-      assert.equal(calls[0][1], 'battery.jpg');
+      assert.equal(calls[0][1], app.values[5]);
       await button.props.onClick();
       assert.equal(calls.length, 1);
     } else {
@@ -91,7 +91,7 @@ test('reset allows file B save while file A is pending; old completion keeps B l
   const calls = [];
   const pending = [];
   const onSave = (_prediction, name) => {
-    calls.push(name);
+    calls.push(name.name);
     return new Promise(resolve => pending.push(resolve));
   };
   app.render({ onSave });
@@ -141,6 +141,27 @@ test('MR save failure keeps result available and allows retry', async () => {
   tree = app.render({ onSave });
   assert.match(text(tree), /Barang sudah dicatat/);
   assert.equal(calls, 2);
+});
+
+test('retry keeps completed source A after auto frame B is interrupted', async () => {
+  const data = { status: 'review', cluster: { id: 4, label: 'Battery' } };
+  const app = harness('components/TriagePanel.tsx', '', {
+    '@/lib/api': { submitToBackend: async () => data },
+    '@/lib/session': { parsePrediction: value => value, automaticLane: () => 'MR' },
+  });
+  const sources = [];
+  const onSave = async (_prediction, source) => { sources.push(source); return 'Disk full'; };
+  app.render({ onSave });
+  const sourceA = { name: 'frame-A.jpg' };
+  app.values[5] = sourceA;
+  app.callbacks.length = 0;
+  app.render({ onSave });
+  await app.callbacks.at(-1)();
+  app.values[5] = { name: 'frame-B.jpg' }; // Interrupted next frame, completed result still A.
+  const tree = app.render({ onSave });
+  await nodes(tree).find(n => n.type === 'button' && text(n).includes('Catat barang ini')).props.onClick();
+  assert.equal(sources.length, 2);
+  assert.equal(sources[1], sourceA);
 });
 
 test('Console navigates exact group, opens persistent Explorer, focuses tab without URL change', () => {
@@ -237,7 +258,7 @@ test('Storage notice stays below workspace with optional details and brief loadi
   const disclosure = nodes(footer).find(n => n.type === 'details');
   assert.equal(disclosure.props.open, undefined);
   assert.equal(text(nodes(disclosure).find(n => n.type === 'summary')), 'Tentang penyimpanan');
-  for (const copy of ['300 barang', 'tanpa foto', 'Ekspor catatan', 'identitas pengisi tidak diverifikasi', 'Bukan audit resmi', 'jam perangkat mundur']) assert.ok(text(disclosure).replace(/\s+/g, ' ').includes(copy));
+  for (const copy of ['300 barang', '900 MB', 'hanya berisi metadata', 'Ekspor catatan', 'identitas pengisi tidak diverifikasi', 'Bukan audit resmi', 'jam perangkat mundur']) assert.ok(text(disclosure).replace(/\s+/g, ' ').includes(copy));
   assert.equal(text(all.find(n => n.props.role === 'status')), 'Memuat…');
   assert.equal(all.some(n => n.props.className === 'demo-notice'), false);
   const section = all.find(n => n.props.className === 'demo-records');

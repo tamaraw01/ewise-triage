@@ -38,7 +38,7 @@ type Prediction = {
 // Returns "" after navigation, or an explicit error when the reference group is absent.
 export type ExploreHandler = (clusterId: number) => string;
 
-export default function TriagePanel({ active = true, onExplore, onSave }: { active?: boolean; onExplore?: ExploreHandler; onSave?: (result: Prediction, fileName: string) => Promise<string> }) {
+export default function TriagePanel({ active = true, onExplore, onSave }: { active?: boolean; onExplore?: ExploreHandler; onSave?: (result: Prediction, file: File) => Promise<string> }) {
   const [saved, setSaved] = useState(false);
   const saving = useRef<number | null>(null);
   const saveGeneration = useRef(0);
@@ -73,7 +73,8 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
   const [autoCapture, setAutoCapture] = useState(false);
   const automatic = useRef(false);
   const capturing = useRef(false);
-  const [resultFileName, setResultFileName] = useState("");
+  const resultSource = useRef<File | null>(null);
+  const savedSource = useRef<File | null>(null);
   const resultRef = useRef<Prediction | null>(null);
   useEffect(() => { resultRef.current = result; }, [result]);
 
@@ -91,8 +92,14 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
   const stopCamera = useCallback(() => {
     if (automatic.current) {
       request.current?.abort();
-      setPhase(resultRef.current ? "done" : "idle");
-      if (!resultRef.current) setFile(null);
+      const source = resultRef.current ? resultSource.current : null;
+      setPhase(source ? "done" : "idle");
+      // Interrupted frame B must not sit beside completed result A.
+      setFile(source);
+      if (source) {
+        setPreviewUrl(URL.createObjectURL(source));
+        setSaved(savedSource.current === source);
+      }
     }
     releaseCamera();
     setAutoCapture(false);
@@ -127,6 +134,9 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
     setSaved(false);
     setSaveError("");
     setResult(null);
+    resultRef.current = null;
+    resultSource.current = null;
+    savedSource.current = null;
     setError("");
     setPreviewUrl("");
     setFile(null);
@@ -223,15 +233,15 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
     return () => { cancelAnimationFrame(frame); video?.removeEventListener("loadeddata", capturePhoto); };
   }, [autoCapture, cameraActive, active, phase, file, capturePhoto]);
 
-  const saveResult = useCallback(async (prediction: Prediction, fileName: string) => {
+  const saveResult = useCallback(async (prediction: Prediction, source: File) => {
     const generation = saveGeneration.current;
     if (!onSave || saving.current === generation || saved) return;
     saving.current = generation;
     try {
-      const message = await onSave(prediction, fileName);
+      const message = await onSave(prediction, source);
       if (generation !== saveGeneration.current) return;
       setSaveError(message);
-      if (!message) setSaved(true);
+      if (!message) { savedSource.current = source; setSaved(true); }
       else if (automatic.current) stopCamera();
     } catch {
       if (generation === saveGeneration.current) {
@@ -254,9 +264,9 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
       const data = await submitToBackend(file, controller.signal);
       if (controller.signal.aborted) return;
       parsePrediction(data);
+      resultSource.current = file;
       setResult(data as Prediction);
-      setResultFileName(file.name);
-      await saveResult(data as Prediction, file.name);
+      await saveResult(data as Prediction, file);
       if (controller.signal.aborted) return;
       setPhase("done");
     } catch (err: unknown) {
@@ -361,8 +371,8 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
       </section>}
       {result && (phase === "done" || autoCapture) && <ResultCard data={result} onReset={reset} onExplore={onExplore} />}
       {result && (phase === "done" || autoCapture) && onSave && <div className="demo-save">
-        <button type="button" className="btn btn-primary" disabled={saved || autoCapture || busy} onClick={() => saveResult(result, resultFileName || file?.name || "Foto barang")}>{saved ? "Barang sudah dicatat" : "Catat barang ini"}</button>
-        <p role="status">{saved ? "Tersimpan di browser ini." : "Foto tidak ikut disimpan."}</p>
+        <button type="button" className="btn btn-primary" disabled={saved || autoCapture || busy} onClick={async () => { if (resultSource.current) await saveResult(result, resultSource.current); }}>{saved ? "Barang sudah dicatat" : "Catat barang ini"}</button>
+        <p role="status">{saved ? "Catatan dan foto tersimpan di browser ini." : "Catatan dan foto belum tersimpan. Coba catat kembali sebelum memilih foto lain."}</p>
         {saveError && <p role="alert">{saveError}</p>}
       </div>}
     </div>

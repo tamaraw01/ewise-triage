@@ -3,6 +3,8 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const ts=require('typescript');
 require.extensions['.ts']=(m,f)=>m._compile(ts.transpileModule(require('node:fs').readFileSync(f,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,esModuleInterop:true}}).outputText,f);
+// Metadata-only unit tests; native IndexedDB coverage lives in browser check.
+require('../lib/demo-photos.ts').changePhotos=async (_photo,_removed,commit)=>commit?.();
 const {mutateStore,KEY}=require('../lib/demo-storage.ts');
 const {createRecord,deleteRecord,appendReview,parseStore}=require('../lib/demo-records.ts');
 const p={status:'classified',margin:.1,threshold:.03,cluster:{id:4,label:'Battery',contested:false,route:'HAZARD',handling:'Check'}};
