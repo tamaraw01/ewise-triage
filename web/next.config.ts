@@ -4,6 +4,12 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   async headers() {
     return [{
+      source: "/:asset(samples|map-photos|map-atlas)/:path*",
+      headers: [{ key: "Cache-Control", value: "public, max-age=3600, stale-while-revalidate=86400" }],
+    }, {
+      source: "/gallery/:path*",
+      headers: [{ key: "Cache-Control", value: "public, max-age=300, stale-while-revalidate=3600" }],
+    }, {
       source: "/:path*",
       headers: [
         { key: "X-Content-Type-Options", value: "nosniff" },

@@ -57,6 +57,8 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
   const [result, setResult] = useState<Prediction | null>(null);
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const samplesDialogRef = useRef<HTMLDialogElement>(null);
+  const [samplesOpen, setSamplesOpen] = useState(false);
   const errorRef = useRef<HTMLDivElement>(null);
   const cameraError = error === "Kamera tidak bisa dibuka. Pilih foto dari perangkat.";
 
@@ -116,8 +118,13 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
     setCameraPending(false);
   }, [releaseCamera]);
 
+  const closeSamples = useCallback(() => {
+    samplesDialogRef.current?.close();
+  }, []);
+
   useEffect(() => {
     if (!active) {
+      closeSamples();
       stopCamera();
       if (sampleRequest.current) {
         sampleRequest.current.abort();
@@ -125,14 +132,19 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
         setPhase("idle");
       }
     }
-  }, [active, stopCamera]);
+  }, [active, closeSamples, stopCamera]);
   useEffect(() => releaseCamera, [releaseCamera]);
 
   useEffect(() => {
-    const hide = () => { if (document.hidden) stopCamera(); };
+    const hide = () => {
+      if (document.hidden) {
+        closeSamples();
+        stopCamera();
+      }
+    };
     document.addEventListener("visibilitychange", hide);
     return () => document.removeEventListener("visibilitychange", hide);
-  }, [stopCamera]);
+  }, [closeSamples, stopCamera]);
   useEffect(() => () => request.current?.abort(), []);
   useEffect(() => () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -380,17 +392,26 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
               </button>
             </div>
           )}
-          <div className="sample-photos" role="group" aria-labelledby="samples-title">
-            <h3 id="samples-title" className="label">Coba foto contoh</h3>
-            <div className="sample-grid">
+          <button type="button" className="btn sample-trigger" disabled={busy || cameraPending || cameraActive || !active} aria-haspopup="dialog" onClick={() => {
+            samplesDialogRef.current?.showModal();
+            setSamplesOpen(true);
+          }}>Coba foto contoh</button>
+          <dialog ref={samplesDialogRef} className="samples-dialog" aria-labelledby="samples-title" onClose={() => setSamplesOpen(false)}>
+            <div className="samples-heading">
+              <h3 id="samples-title">Coba foto contoh</h3>
+              <button type="button" className="btn" onClick={closeSamples}>Tutup</button>
+            </div>
+            {samplesOpen && <div className="sample-grid">
               {SAMPLES.map(sample => (
-                <button key={sample.filename} type="button" className="btn sample-photo" disabled={busy || cameraPending || cameraActive || !active} onClick={() => selectSample(sample.filename)}>
+                <button key={sample.filename} type="button" className="btn sample-photo" aria-label={sample.label} disabled={busy || cameraPending || cameraActive || !active} onClick={() => {
+                  closeSamples();
+                  void selectSample(sample.filename);
+                }}>
                   <Image src={`/samples/${sample.filename}`} alt="" width={112} height={72} unoptimized />
-                  <span>{sample.label}</span>
                 </button>
               ))}
-            </div>
-          </div>
+            </div>}
+          </dialog>
         </div>
       </section>
 
