@@ -14,6 +14,13 @@ import { automaticLane, candidateLabel, manualExplanation, manualReason, parsePr
 
 gsap.registerPlugin(useGSAP);
 
+const SAMPLES = [
+  { label: "Kipas angin", filename: "kipasangin_sampel.webp" },
+  { label: "PCB", filename: "ppcb_sampelz.webp" },
+  { label: "Pengisi daya", filename: "kabelcharger_sampel.webp" },
+  { label: "Mesin cuci", filename: "washingmachinetop_sampel.webp" },
+];
+
 type ZeroShot = { label: string; similarity: number };
 
 type Prediction = {
@@ -69,6 +76,7 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
   const cameraRequest = useRef(0);
   const cameraStarting = useRef(false);
   const request = useRef<AbortController | null>(null);
+  const sampleRequest = useRef<AbortController | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraPending, setCameraPending] = useState(false);
   const [autoCapture, setAutoCapture] = useState(false);
@@ -109,7 +117,14 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
   }, [releaseCamera]);
 
   useEffect(() => {
-    if (!active) stopCamera();
+    if (!active) {
+      stopCamera();
+      if (sampleRequest.current) {
+        sampleRequest.current.abort();
+        sampleRequest.current = null;
+        setPhase("idle");
+      }
+    }
   }, [active, stopCamera]);
   useEffect(() => releaseCamera, [releaseCamera]);
 
@@ -131,6 +146,7 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
   const reset = useCallback(() => {
     saveGeneration.current++;
     request.current?.abort();
+    sampleRequest.current = null;
     setPhase("idle");
     setSaved(false);
     setSaveError("");
@@ -156,14 +172,36 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
     setPreviewUrl(URL.createObjectURL(selected));
   };
 
+  const selectSample = async (filename: string) => {
+    if (!active || phase === "loading" || sampleRequest.current || cameraStarting.current || cameraActive) return;
+    reset();
+    const controller = new AbortController();
+    request.current = controller;
+    sampleRequest.current = controller;
+    setPhase("loading");
+    try {
+      const response = await fetch(`/samples/${filename}`, { signal: controller.signal });
+      if (!response.ok) throw new Error("Foto contoh gagal dimuat. Coba lagi atau pilih foto sendiri.");
+      const blob = await response.blob();
+      if (controller.signal.aborted) return;
+      selectFile(new File([blob], filename, { type: "image/webp" }));
+    } catch {
+      if (controller.signal.aborted) return;
+      setError("Foto contoh gagal dimuat. Coba lagi atau pilih foto sendiri.");
+      setPhase("error");
+    } finally {
+      if (sampleRequest.current === controller) sampleRequest.current = null;
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     e.target.value = "";
-    if (selected && phase !== "loading") selectFile(selected);
+    if (selected && phase !== "loading" && !sampleRequest.current) selectFile(selected);
   };
 
   const startCamera = async () => {
-    if (!active || cameraStarting.current || cameraActive || phase === "loading") return;
+    if (!active || cameraStarting.current || cameraActive || sampleRequest.current || phase === "loading") return;
     const id = ++cameraRequest.current;
     cameraStarting.current = true;
     setCameraPending(true);
@@ -290,7 +328,7 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const dropped = e.dataTransfer.files?.[0];
-    if (phase !== "loading" && dropped) selectFile(dropped);
+    if (phase !== "loading" && !sampleRequest.current && dropped) selectFile(dropped);
   };
   const onDragOver = (e: React.DragEvent) => e.preventDefault();
 
@@ -342,6 +380,17 @@ export default function TriagePanel({ active = true, onExplore, onSave }: { acti
               </button>
             </div>
           )}
+          <div className="sample-photos" role="group" aria-labelledby="samples-title">
+            <h3 id="samples-title" className="label">Coba foto contoh</h3>
+            <div className="sample-grid">
+              {SAMPLES.map(sample => (
+                <button key={sample.filename} type="button" className="btn sample-photo" disabled={busy || cameraPending || cameraActive || !active} onClick={() => selectSample(sample.filename)}>
+                  <Image src={`/samples/${sample.filename}`} alt="" width={112} height={72} unoptimized />
+                  <span>{sample.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
