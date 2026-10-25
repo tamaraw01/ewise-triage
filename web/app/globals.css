@@ -74,6 +74,7 @@ button:active:not(:disabled) { filter:brightness(.92); }
 .samples-dialog { width:min(400px,calc(100% - 32px)); max-height:calc(100dvh - 32px); margin:auto; padding:20px; border:1px solid var(--edge); background:var(--iron); color:var(--bone); }
 .samples-dialog::backdrop { background:rgba(0,0,0,.6); }
 .capture-panel .samples-dialog .btn { background:var(--iron-hi); color:var(--bone); }
+.capture-panel .samples-dialog :focus-visible { outline-color:var(--green); }
 .samples-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .samples-heading h3 { font-size:16px; font-weight:600; }
 .sample-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:16px; }
