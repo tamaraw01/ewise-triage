@@ -16,7 +16,7 @@ function harness(file, expose = '', overrides = {}) {
   const metadata = { 4: { name: 'Battery', sub: 'Baterai', lane: 'P1', hazard: 'Jangan tusuk baterai.', action: 'Pisahkan baterai.' } };
   const node = (type, props) => ({ type, props: props || {} });
   const react = {
-    useState(initial) { const index = cursor++; if (!(index in values)) values[index] = initial; return [values[index], value => { values[index] = value; }]; },
+    useState(initial) { const index = cursor++; if (!(index in values)) values[index] = initial; return [values[index], value => { values[index] = typeof value === 'function' ? value(values[index]) : value; }]; },
     useRef(initial) { const index = cursor++; if (!(index in values)) values[index] = { current: initial }; return values[index]; }, useEffect() {}, useCallback: fn => { callbacks.push(fn); return fn; },
   };
   const modules = {

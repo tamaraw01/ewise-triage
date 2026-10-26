@@ -77,17 +77,19 @@ export function gateAngle(time: number, gate: number, routes: number[], single: 
   return previous+(wrapped[selected].angle-previous)*smooth(elapsed/0.26);
 }
 
-export function FactoryLoop({ single, paused }: { single: boolean; paused: boolean }) {
+export function FactoryLoop({ single, paused, active = true }: { single: boolean; paused: boolean; active?: boolean }) {
   const host = useRef<HTMLDivElement>(null);
   const playing = useRef(false);
+  const enabled = useRef(active);
   const [failed, setFailed] = useState(false);
   const [reduced, setReduced] = useState(false);
   const [allowMotion, setAllowMotion] = useState(false);
   const sync = useRef<() => void>(() => {});
   useEffect(() => {
+    enabled.current = active;
     playing.current = !paused && (!reduced || allowMotion);
     sync.current();
-  }, [paused, reduced, allowMotion]);
+  }, [paused, reduced, allowMotion, active]);
 
   useEffect(() => {
     const el = host.current;
@@ -118,12 +120,17 @@ export function FactoryLoop({ single, paused }: { single: boolean; paused: boole
     const iron = material(0x29352e), belt = material(0x424e44), steel = material(0x98a49a, 0.55);
     const bone = material(0xeeeade), sage = material(0xa7ba83), amber = material(0xebad4a);
     const black = material(0x19241e), green = material(0x3e7451);
+    const geometries = new Map<string, THREE.BufferGeometry>();
     function box(parent: THREE.Object3D, w: number, h: number, d: number, mat: THREE.Material, x = 0, y = 0, z = 0) {
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+      const key = `box:${w}:${h}:${d}`;
+      if (!geometries.has(key)) geometries.set(key, new THREE.BoxGeometry(w, h, d));
+      const mesh = new THREE.Mesh(geometries.get(key), mat);
       mesh.position.set(x, y, z); mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh); return mesh;
     }
     function cylinder(parent: THREE.Object3D, r: number, h: number, mat: THREE.Material, x: number, y: number, z: number, sideways = false) {
-      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 16), mat);
+      const key = `cylinder:${r}:${h}`;
+      if (!geometries.has(key)) geometries.set(key, new THREE.CylinderGeometry(r, r, h, 16));
+      const mesh = new THREE.Mesh(geometries.get(key), mat);
       if (sideways) mesh.rotation.x = Math.PI / 2;
       mesh.position.set(x, y, z); mesh.castShadow = true; parent.add(mesh); return mesh;
     }
@@ -254,6 +261,7 @@ export function FactoryLoop({ single, paused }: { single: boolean; paused: boole
     const markers=Array.from({length:15},(_,i)=>box(scene,0.025,0.012,1.2,steel,-8+i*0.4,0.046));
     let time = 0, last = 0, frame = 0, visible = false, lost = false;
     const render = () => {
+      if (!enabled.current || document.hidden || !el.clientWidth || !el.clientHeight || lost) return;
       const deposits=heaps.map(({group,index,copy,slot})=>{
         const p=heapPose(time,index,routes[index],single,copy,slot);
         group.position.set(p.x,p.y,p.z);group.rotation.y=-p.heading;group.visible=p.visible;
@@ -282,7 +290,7 @@ export function FactoryLoop({ single, paused }: { single: boolean; paused: boole
     };
     const update = () => {
       cancelAnimationFrame(frame); frame = 0; last = 0;
-      const active = playing.current && visible && !document.hidden && !lost;
+      const active = playing.current && enabled.current && visible && !document.hidden && !lost;
       el.dataset.running = String(active);
       if (active) frame = requestAnimationFrame(tick);
       else if (!lost) render();
@@ -290,6 +298,7 @@ export function FactoryLoop({ single, paused }: { single: boolean; paused: boole
     sync.current = update;
     const resize = () => {
       const w = el.clientWidth, h = el.clientHeight;
+      if (!w || !h) return;
       renderer.setSize(w, h);
       const aspect = w / Math.max(h, 1), halfWidth = Math.max(13.4, 6.8 * aspect);
       camera.left = -halfWidth; camera.right = halfWidth; camera.top = halfWidth / aspect; camera.bottom = -halfWidth / aspect;
@@ -311,7 +320,9 @@ export function FactoryLoop({ single, paused }: { single: boolean; paused: boole
       ro.disconnect(); observer.disconnect(); media.removeEventListener("change", preference);
       document.removeEventListener("visibilitychange", update);
       renderer.domElement.removeEventListener("webglcontextlost", contextLost);
-      scene.traverse(object => { const mesh = object as THREE.Mesh; mesh.geometry?.dispose(); if (mesh.material) [mesh.material].flat().forEach(m => m.dispose()); });
+      const resources = new Set<THREE.BufferGeometry | THREE.Material>();
+      scene.traverse(object => { const mesh = object as THREE.Mesh; if (mesh.geometry) resources.add(mesh.geometry); if (mesh.material) [mesh.material].flat().forEach(m => resources.add(m)); });
+      resources.forEach(resource => resource.dispose());
       textures.forEach(texture => texture.dispose()); renderer.dispose(); renderer.forceContextLoss(); renderer.domElement.remove();
     };
   }, [single]);

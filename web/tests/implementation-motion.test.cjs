@@ -34,12 +34,12 @@ test('main Implementation renders approved loops and shared pause control', () =
   new Function('require', 'exports', code)(id => id === 'react' ? { useState: () => [paused, value => { paused = value; }] } : id === 'react/jsx-runtime' ? { jsx: node, jsxs: node } : { FactoryLoop: 'FactoryLoop' }, exports);
   const flatten = n => n && typeof n === 'object' ? [n, ...[n.props?.children].flat(Infinity).flatMap(flatten)] : [];
   let nodes = flatten(exports.default());
-  assert.deepEqual(nodes.filter(n => n.type === 'FactoryLoop').map(n => n.props), [{ single: false, paused: false }, { single: true, paused: false }]);
+  assert.deepEqual(nodes.filter(n => n.type === 'FactoryLoop').map(n => n.props), [{ single: false, paused: false, active: true }, { single: true, paused: false, active: true }]);
   assert(nodes.some(n => n.props?.id === 'impl-title'));
   assert(!nodes.some(n => ['main', 'footer'].includes(n.type)));
   nodes.find(n => n.type === 'button').props.onClick();
   nodes = flatten(exports.default());
   assert(nodes.filter(n => n.type === 'FactoryLoop').every(n => n.props.paused));
   const page = fs.readFileSync(path.join(__dirname, '../app/page.tsx'), 'utf8');
-  assert.match(page, /id="panel-4"[^\n]+<Implementation \/>/);
+  assert.match(page, /id="panel-4"[^\n]+<Implementation active=\{section === "Implementasi"\} \/>/);
 });

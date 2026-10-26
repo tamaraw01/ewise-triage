@@ -50,9 +50,11 @@ function KCurves() {
   })}</div>;
 }
 
-export default function AnalysisFlow() {
+export default function AnalysisFlow({ active = true }: { active?: boolean }) {
  const root = useRef<HTMLElement>(null), canvasRef = useRef<HTMLCanvasElement>(null), sphereRef = useRef<HTMLDivElement>(null);
  const id = useId();
+ const enabled = useRef(active);
+ useEffect(() => { enabled.current = active; if (active) window.dispatchEvent(new Event("resize")); }, [active]);
  const [stage, setStage] = useState(0), [partition, setPartition] = useState(0), [focus, setFocus] = useState<number | null>(null);
  const [systemReduce, setSystemReduce] = useState(false), [manualReduce, setManualReduce] = useState<boolean | null>(null);
  const reduce = manualReduce ?? systemReduce;
@@ -91,7 +93,7 @@ function line(a: [number,number],b: [number,number],color='#a7ba83',width=1){ctx
 function dot(x: number,y: number,r: number,col: string){ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()}
 function project(x: number,y: number,z: number,rot=0): [number,number]{const xx=x*Math.cos(rot)+z*Math.sin(rot),zz=-x*Math.sin(rot)+z*Math.cos(rot),f=4/(4+zz);return [cx+xx*R*f,cy+y*R*f]}
 let cx = 0, cy = 0, R = 0;
-function draw(){const { partition, focus } = selection.current;queued=false;if(!ctx)return;ctx.clearRect(0,0,W,H);const mobile=W<760;cx=mobile?W*.5:W*.69;cy=mobile?H*.69:H*.49;R=Math.min(mobile?W*.34:W*.22,H*.32);const t=manual?1:phase;
+function draw(){queued=false;if(!enabled.current||document.hidden)return;const { partition, focus } = selection.current;if(!ctx)return;ctx.clearRect(0,0,W,H);const mobile=W<760;cx=mobile?W*.5:W*.69;cy=mobile?H*.69:H*.49;R=Math.min(mobile?W*.34:W*.22,H*.32);const t=manual?1:phase;
 
  if(stage===0){for(let i=0;i<80;i++){const col=i%10,row=Math.floor(i/10),x=cx+(col-4.5)*R*.185,y=cy+(row-3.5)*R*.19;ctx.save();ctx.translate(x,y);ctx.rotate((col-4.5)*.025);ctx.fillStyle=i%6?'#a4b398':'#c8cebb';ctx.fillRect(-R*.075,-R*.07,R*.15,R*.14);ctx.strokeStyle='#a7ba83';ctx.lineWidth=1;ctx.strokeRect(-R*.045,-R*.04,R*.09,R*.06);line([-R*.02,R*.025],[R*.025,R*.025]);ctx.restore()}}
  if(stage===1){for(let i=0;i<92;i++){const a=i/92*Math.PI*2;ctx.strokeStyle=i%11?'#7d907066':'#a7ba83';ctx.beginPath();ctx.moveTo(cx-R*1.05,cy+Math.sin(a)*R*.65);ctx.bezierCurveTo(cx-R*.3,cy+Math.sin(a*2+t)*R,cx+R*.2,cy+Math.cos(a)*R,cx+R*1.1,cy+(i/92-.5)*R*1.7);ctx.stroke();dot(cx+R*1.1,cy+(i/92-.5)*R*1.7,1.5,'#a7ba83')} }
@@ -107,26 +109,28 @@ function draw(){const { partition, focus } = selection.current;queued=false;if(!
   if(stage===2){globe.rotation.y=-.4+t*.5;arrows.forEach((a,i)=>a.setLength(mix(.4+(i%8)*.19,1,t),.07,.035));renderer.render(scene,camera);}
  }
 }
- function requestDraw(){if(!queued){queued=true;frame=requestAnimationFrame(draw);}}
+ function requestDraw(){if(enabled.current&&!document.hidden&&!queued){queued=true;frame=requestAnimationFrame(draw);}}
  redraw.current=requestDraw;
  const sections=Array.from(rootNode.querySelectorAll<HTMLElement>('[data-stage]'));
  function position(){
+  if(!enabled.current||document.hidden)return;
   let best=0;sections.forEach((s,i)=>{if(s.getBoundingClientRect().top<innerHeight*.48)best=i;});
   stage=best;setStage(best);
   const r=sections[best].getBoundingClientRect();phase=clamp((innerHeight*.48-r.top)/(r.height*.6));requestDraw();
  }
  function resize(){
-  W=canvas!.clientWidth;H=canvas!.clientHeight;const d=Math.min(devicePixelRatio,2);
+  if(!enabled.current||document.hidden)return;
+  W=canvas!.clientWidth;H=canvas!.clientHeight;if(!W||!H)return;const d=Math.min(devicePixelRatio,2);
   canvas!.width=W*d;canvas!.height=H*d;ctx!.setTransform(d,0,0,d,0,0);
   if(renderer){const w=host!.clientWidth,h=host!.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();}
   position();
  }
  const observer=new ResizeObserver(resize);observer.observe(canvas);
  ScrollTrigger.create({trigger:rootNode,start:'top bottom',end:'bottom top',onUpdate:position});
- window.addEventListener('scroll',position,{passive:true});window.addEventListener('resize',resize);resize();
+ window.addEventListener('scroll',position,{passive:true});window.addEventListener('resize',resize);document.addEventListener('visibilitychange',resize);resize();
  return ()=>{
   redraw.current=()=>{};
-  observer.disconnect();window.removeEventListener('scroll',position);window.removeEventListener('resize',resize);cancelAnimationFrame(frame);
+  observer.disconnect();window.removeEventListener('scroll',position);window.removeEventListener('resize',resize);document.removeEventListener('visibilitychange',resize);cancelAnimationFrame(frame);
   geometry.dispose();material.dispose();arrows.forEach(a=>{a.line.geometry.dispose();a.cone.geometry.dispose();[a.line.material,a.cone.material].flat().forEach(m=>m.dispose());});
   renderer?.dispose();renderer?.domElement.remove();
  };
