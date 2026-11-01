@@ -134,6 +134,16 @@ Dari `web/`, jalankan `npm run lint`, `npm test`, `npx tsc --noEmit`, dan
 `npm run build`. GitHub Actions menjalankan pemeriksaan ini pada push dan pull request.
 Panduan uji browser tersedia di [CONTRIBUTING.md](CONTRIBUTING.md).
 
+Tiga pemeriksaan bukti (`analytics.test.cjs`, `gallery.test.cjs`, dan
+`map-photos.test.cjs`) bergantung pada CSV di `research/artifacts/` yang tidak
+tersedia dalam clone publik. Kegagalan karena berkas tersebut hilang bukan hasil
+uji inferensi. Jangan mengunggah artefak riset internal untuk melengkapi tes;
+pisahkan pemeriksaan bukti privat dari tes yang harus berjalan pada clone publik.
+
+Penolakan otomatis di backend didasarkan pada margin citra. Itu tidak menjamin
+bahwa setiap citra dari klaster C9 atau C11 akan ditahan. Nama klaster dan jalur
+penanganan tetap perlu diperiksa petugas, termasuk saat margin melewati ambang.
+
 Pemilihan foto memulai pengiriman ke E-WISE dan Hugging Face, termasuk metadata
 jika ada. Hindari data pribadi. Lihat [SECURITY.md](SECURITY.md) untuk batas
 pemrosesan foto dan pelaporan kerentanan.
