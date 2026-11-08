@@ -32,9 +32,32 @@ Konfigurasi deployment harus sesuai dengan protokol yang digunakan frontend.
 
 | Metode | Jalur | Keterangan |
 |---|---|---|
+| GET | `/` | nama layanan, backbone, jumlah klaster, daftar endpoint |
 | GET | `/health` | status muat model |
 | GET | `/clusters` | 14 klaster + metrik EXP 14 |
 | POST | `/predict` | unggah satu citra (form field `file`) |
+
+### Respons `/predict`
+
+Respons sukses berisi `status` (`classified` atau `review`), `margin`,
+`threshold`, `top_similarity`, objek `cluster`, `runner_up`, lima klaster
+teratas di `ranking`, empat label teks terdekat di `zero_shot`, `disclaimer`,
+serta `filename` dan `bytes` dari unggahan. Objek `cluster` memuat `id`,
+`label`, `route`, `handling`, `n_images`, `purity`, dan `contested`
+(`purity` di bawah 0,5). Jika `status` bernilai `review`, `cluster.label`
+bernilai `null` dan `cluster.route` bernilai `MANUAL_REVIEW`.
+
+| Kode | Kondisi |
+|---|---|
+| 415 | `Content-Type` berkas selain JPEG, PNG, WebP, BMP, atau GIF |
+| 400 | berkas kosong |
+| 413 | berkas lebih dari 12 MiB |
+| 500 | kegagalan lain, dengan isi `{"error": "Gagal memproses citra"}` |
+
+Citra yang tidak bisa dibaca PIL, atau yang ditolak pemeriksaan dimensi di
+`image_input.py` (lebih dari 24 juta piksel atau rasio sisi lebih dari 20:1),
+saat ini juga berakhir dengan kode 500. Klien belum bisa membedakan input
+yang buruk dari kegagalan server lewat kode status saja.
 
 ## Asal angka
 
